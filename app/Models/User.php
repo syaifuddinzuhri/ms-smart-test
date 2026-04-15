@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -14,15 +15,11 @@ class User extends Authenticatable implements FilamentUser
 {
     use Notifiable, HasUuids;
 
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     protected $guarded = [];
 
     protected $casts = [
         'role' => UserRole::class,
         'is_active' => 'boolean',
-        'password' => 'hashed',
     ];
 
     public function canAccessPanel(Panel $panel): bool
@@ -38,5 +35,10 @@ class User extends Authenticatable implements FilamentUser
         }
 
         return false;
+    }
+
+    public function student(): HasOne
+    {
+        return $this->hasOne(Student::class);
     }
 }

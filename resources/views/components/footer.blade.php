@@ -3,7 +3,7 @@
 
         <div class="text-sm text-gray-500 font-medium text-center md:text-left">
             <div>
-                &copy; {{ date('Y') }} <span class="font-black text-primary-600 uppercase tracking-tight">MANUSGI
+                &copy; {{ date('Y') }} <span class="font-black text-green-600 uppercase tracking-tight">MANUSGI
                     SMART TEST</span>.
             </div>
             <div class="text-[10px] text-gray-400 uppercase tracking-[0.15em] mt-0.5">
