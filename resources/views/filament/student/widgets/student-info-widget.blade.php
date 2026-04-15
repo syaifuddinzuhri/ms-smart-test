@@ -3,14 +3,14 @@
         <div class="flex items-center gap-4 border-b border-gray-100 pb-4 mb-4">
             <div class="flex-shrink-0">
                 <div
-                    class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 border border-primary-100">
-                    <x-heroicon-s-user class="w-10 h-10" />
+                    class="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 border border-primary-100">
+                    <x-heroicon-s-user class="w-8 h-8" />
                 </div>
             </div>
             <div class="flex items-center justify-between w-full">
                 <div>
-                    <h2 class="text-xl font-black text-gray-900 leading-tight">Budi Setiawan</h2>
-                    <p class="text-sm text-gray-500 font-medium">NISN: 00123456789</p>
+                    <h2 class="text-md md:text-xl font-black text-gray-900 leading-tight">{{ auth()->user()->name }}</h2>
+                    <p class="text-xs md:text-sm text-gray-500 font-medium">NISN: 00123456789</p>
                 </div>
                 <span
                     class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">

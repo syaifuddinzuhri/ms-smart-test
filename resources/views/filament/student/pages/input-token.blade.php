@@ -9,8 +9,8 @@
                         <div class="p-2 bg-primary-100 rounded-lg text-primary-600">
                             <x-heroicon-s-key class="w-6 h-6" />
                         </div>
-                        <h1 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
-                            Verifikasi Akses Token
+                        <h1 class="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tight">
+                            Verifikasi Akses
                         </h1>
                     </div>
                     <p class="text-sm text-gray-500 font-medium">Silahkan masukkan token yang diberikan oleh pengawas untuk membuka soal.</p>

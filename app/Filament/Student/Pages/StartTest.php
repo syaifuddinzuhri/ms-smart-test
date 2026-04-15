@@ -29,7 +29,7 @@ class StartTest extends Page implements HasForms, HasActions
     // State Navigasi
     public $activeTab = 'pg'; // 'pg' atau 'essay'
     public $currentStep = 1;
-    public $totalPG = 3; // Contoh ada 3 soal PG
+    public $totalPG = 10; // Contoh ada 3 soal PG
     public $totalEssay = 2; // Contoh ada 2 soal Essay
 
     public ?array $data = [];
@@ -114,6 +114,9 @@ class StartTest extends Page implements HasForms, HasActions
             ->icon('heroicon-m-paper-airplane')
             ->color('info')
             ->size('md')
+            ->extraAttributes([
+                'class' => 'w-full md:w-auto justify-center',
+            ])
             ->requiresConfirmation()
             ->modalHeading('Kirim Jawaban Ujian?')
             ->modalDescription('Pastikan semua jawaban sudah benar. Setelah dikirim, Anda tidak dapat mengubah jawaban lagi.')

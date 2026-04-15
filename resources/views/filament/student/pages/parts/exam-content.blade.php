@@ -26,12 +26,12 @@
     </div>
 
     <div class="bg-white border border-gray-200 rounded-xl p-2 min-h-[200px] relative shadow-sm">
-        <div class="flex justify-between items-center border-b border-gray-100 p-4">
+        <div class="flex md:flex-row flex-col md:justify-between md:items-center border-b border-gray-100 p-4">
             <span class="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
                 Soal Nomor {{ $currentStep }}
                 ({{ $activeTab === 'pg' ? 'Pilihan Ganda' : 'Essay' }})
             </span>
-            <span class="text-xs font-bold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+            <span class="text-xs font-bold text-primary-600 bg-primary-50 py-1 rounded-full">
                 Selesai: {{ count(array_filter($data)) }} / {{ $totalPG + $totalEssay }}
             </span>
         </div>
@@ -44,24 +44,29 @@
     <!-- Navigasi & Tombol Ragu-ragu -->
     <div
         class="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-        <div class="flex gap-2 w-full justify-center md:justify-start">
+        <div class="flex flex-wrap md:flex-nowrap gap-2 gap-y-4 w-full justify-center md:justify-start">
+
+            <!-- TOMBOL SEBELUMNYA -->
             <x-filament::button color="gray" outlined wire:click="previous" icon="heroicon-m-arrow-left"
-                :disabled="$activeTab === 'pg' && $currentStep === 1">
+                :disabled="$activeTab === 'pg' && $currentStep === 1" class="flex-1 md:flex-none order-2 md:order-1">
                 Sebelumnya
             </x-filament::button>
 
             <!-- TOMBOL RAGU-RAGU -->
-            @php $currentKey = ($activeTab === 'pg' ? 'q' : 'q') . ($activeTab === 'pg' ? $currentStep : $currentStep + $totalPG); @endphp
-            <x-filament::button tag="button"
-                wire:click="toggleDoubt('q{{ $activeTab === 'pg' ? $currentStep : $currentStep + $totalPG }}')"
-                color="warning" :outlined="!in_array('q'.($activeTab === 'pg' ? $currentStep : $currentStep + $totalPG), $doubtfulQuestions)">
+            @php
+                $currentId = $activeTab === 'pg' ? $currentStep : $currentStep + $totalPG;
+            @endphp
+            <x-filament::button tag="button" wire:click="toggleDoubt('q{{ $currentId }}')" color="warning"
+                :outlined="!in_array('q' . $currentId, $doubtfulQuestions)" class="w-full md:w-auto order-1 md:order-2">
                 Ragu-Ragu
             </x-filament::button>
 
+            <!-- TOMBOL SELANJUTNYA -->
             <x-filament::button color="primary" wire:click="next" icon-position="after" icon="heroicon-m-arrow-right"
-                :disabled="$activeTab === 'essay' && $currentStep === $totalEssay">
+                :disabled="$activeTab === 'essay' && $currentStep === $totalEssay" class="flex-1 md:flex-none order-3 md:order-3">
                 Selanjutnya
             </x-filament::button>
+
         </div>
 
         <div class="w-full flex justify-center md:justify-end">

@@ -3,7 +3,7 @@
         <x-slot name="heading">
             <div class="flex items-center gap-2 text-primary-600">
                 <x-heroicon-m-information-circle class="w-6 h-6" />
-                <span class="text-lg font-black uppercase tracking-tight">Ketentuan & Tata Tertib Ujian</span>
+                <span class="text-sm md:text-lg font-black uppercase tracking-tight">Ketentuan & Tata Tertib Ujian</span>
             </div>
         </x-slot>
 
