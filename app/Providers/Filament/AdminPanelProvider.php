@@ -34,6 +34,28 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->id(PanelType::ADMIN->value)
             ->path(PanelType::ADMIN->value)
+            ->navigationGroups([
+                NavigationGroup::make()
+                    ->label('Manajemen Peserta')
+                    ->icon('heroicon-o-users')
+                    ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Manajemen Soal')
+                    ->icon('heroicon-o-book-open')
+                    ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Manajemen Ujian')
+                    ->icon('heroicon-o-computer-desktop')
+                    ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Laporan')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Pengaturan')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsed(),
+            ])
             ->darkMode(false)
             ->authGuard('web')
             ->defaultThemeMode(ThemeMode::Light)
@@ -44,7 +66,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
-            ->sidebarFullyCollapsibleOnDesktop()
+            ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
