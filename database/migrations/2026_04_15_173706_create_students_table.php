@@ -22,7 +22,6 @@ return new class extends Migration {
             $table->date('dob')->nullable();    // Date of Birth
 
             $table->timestamps();
-            $table->softDeletes()->index();
         });
     }
 

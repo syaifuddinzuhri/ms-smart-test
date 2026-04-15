@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subject extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids;
     public $incrementing = false;
 
     protected $keyType = 'string';

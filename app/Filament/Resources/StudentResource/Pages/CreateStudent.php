@@ -16,9 +16,11 @@ class CreateStudent extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $cleanUsername = normalizeUsername($data['user_username']);
+
         $user = User::create([
             'name' => $data['user_name'],
-            'username' => $data['user_username'],
+            'username' => $cleanUsername,
             'email' => $data['user_email'],
             'password' => Hash::make($data['user_password']),
             'role' => UserRole::STUDENT->value,

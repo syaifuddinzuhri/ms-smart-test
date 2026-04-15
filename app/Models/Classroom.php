@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Classroom extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids;
 
     public $incrementing = false;
 

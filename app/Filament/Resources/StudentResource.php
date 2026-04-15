@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Enums\UserRole;
 use App\Filament\Resources\StudentResource\Pages;
-use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -16,8 +15,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Hash;
 
 class StudentResource extends Resource
 {
@@ -45,7 +42,17 @@ class StudentResource extends Resource
                         TextInput::make('user_username')
                             ->label('Username')
                             ->required()
-                            ->unique(table: \App\Models\User::class, column: 'username', ignoreRecord: true),
+                            ->unique(table: \App\Models\User::class, column: 'username', ignorable: fn($record) => $record?->user)
+                            ->extraInputAttributes(['style' => 'text-transform: lowercase'])
+                            ->extraAttributes([
+                                'x-on:input' => "\$el.querySelector('input').value = \$el.querySelector('input').value.toLowerCase().replace(/[^a-z0-9]/g, '')",
+                            ])
+                            ->hint('Gunakan huruf kecil & angka saja')
+                            ->hintColor('primary')
+                            ->regex('/^[a-z0-9]+$/')
+                            ->validationMessages([
+                                'regex' => 'Username hanya boleh berisi huruf kecil dan angka tanpa spasi.',
+                            ]),
 
                         TextInput::make('user_password')
                             ->label('Password')
