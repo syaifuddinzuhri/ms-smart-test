@@ -29,13 +29,5 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => UserRole::TEACHER->value,
         ]);
-
-        User::create([
-            'name' => 'Siswa Contoh',
-            'username' => 'student',
-            'email' => 'student@cbt.com',
-            'password' => Hash::make('password'),
-            'role' => UserRole::STUDENT->value,
-        ]);
     }
 }
