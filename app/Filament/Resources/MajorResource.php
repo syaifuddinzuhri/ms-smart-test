@@ -20,7 +20,7 @@ class MajorResource extends Resource
 {
     protected static ?string $model = Major::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $navigationLabel = 'Jurusan';
     protected static ?string $modelLabel = 'Jurusan';

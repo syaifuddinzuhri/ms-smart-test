@@ -34,36 +34,17 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->id(PanelType::ADMIN->value)
             ->path(PanelType::ADMIN->value)
-            ->navigationGroups([
-                NavigationGroup::make()
-                    ->label('Manajemen Peserta')
-                    ->icon('heroicon-o-users'),
-                // NavigationGroup::make()
-                //     ->label('Manajemen Soal')
-                //     ->icon('heroicon-o-book-open'),
-                // NavigationGroup::make()
-                //     ->label('Manajemen Ujian')
-                //     ->icon('heroicon-o-computer-desktop'),
-                // NavigationGroup::make()
-                //     ->label('Laporan')
-                //     ->icon('heroicon-o-clipboard-document-check'),
-                // NavigationGroup::make()
-                //     ->label('Pengaturan')
-                //     ->icon('heroicon-o-cog-6-tooth'),
-            ])
             ->darkMode(false)
             ->authGuard('web')
             ->defaultThemeMode(ThemeMode::Light)
             ->brandLogo(fn() => view('components.logo'))
             ->brandLogoHeight('2rem')
-            ->sidebarCollapsibleOnDesktop()
             ->sidebarWidth('18rem')
-            ->collapsedSidebarWidth('4.5rem')
             ->login(Login::class)
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::Green,
             ])
-            ->sidebarCollapsibleOnDesktop()
+            ->sidebarFullyCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
@@ -92,7 +73,7 @@ class AdminPanelProvider extends PanelProvider
                 fn() => view('components.login-footer'),
             )
             ->renderHook(
-                PanelsRenderHook::BODY_END,
+                PanelsRenderHook::CONTENT_END,
                 fn() => view('components.footer'),
             )
             ->renderHook(
@@ -101,17 +82,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn(): string => Blade::render('
-                    <script src="https://cdn.tailwindcss.com"></script>
-                    <script>
-                        tailwind.config = {
-                            darkMode: "class",
-                            corePlugins: {
-                                preflight: false,
-                            }
-                        }
-                    </script>
-                '),
+                fn(): string => Blade::render('filament.components.custom-styles'),
             )
             ->spa();
     }
