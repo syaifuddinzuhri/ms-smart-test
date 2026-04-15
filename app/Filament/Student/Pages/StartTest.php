@@ -134,20 +134,20 @@ class StartTest extends Page implements HasForms, HasActions
                 // KELOMPOK SOAL PILIHAN GANDA
                 \Filament\Forms\Components\Group::make([
                     Radio::make('q1')
-                        ->label('1. Apa kepanjangan dari CBT?')
-                        ->options(['a' => 'Computer Based Test', 'b' => 'Common Basic Task'])
+                        ->label('1. Apa benar pernyataan ini?')
+                        ->options(['a' => 'Benar', 'b' => 'Salah'])
                         ->live()
                         ->visible(fn() => $this->activeTab === 'pg' && $this->currentStep === 1),
 
                     Radio::make('q2')
                         ->label('2. Laravel menggunakan bahasa pemrograman apa?')
-                        ->options(['a' => 'PHP', 'b' => 'Javascript', 'c' => 'Ruby'])
+                        ->options(['a' => 'A. PHP', 'b' => 'B. Javascript', 'c' => 'C. Ruby'])
                         ->live()
                         ->visible(fn() => $this->activeTab === 'pg' && $this->currentStep === 2),
 
                     CheckboxList::make('q3')
                         ->label('3. Pilih framework CSS (Bisa lebih dari satu)')
-                        ->options(['a' => 'Tailwind', 'b' => 'Bootstrap', 'c' => 'Laravel'])
+                        ->options(['a' => 'A. Tailwind', 'b' => 'B. Bootstrap', 'c' => 'C. Laravel'])
                         ->live()
                         ->visible(fn() => $this->activeTab === 'pg' && $this->currentStep === 3),
                 ]),
