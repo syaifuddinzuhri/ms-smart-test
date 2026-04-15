@@ -51,6 +51,20 @@ class StudentPanelProvider extends PanelProvider
         );
 
         FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            function (): string {
+                if (app()->environment('production')) {
+                    return Blade::render('
+                    <script>
+                        document.oncontextmenu = function() { return false; };
+                    </script>
+                ');
+                }
+                return '';
+            },
+        );
+
+        FilamentView::registerRenderHook(
             PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
             fn() => Blade::render('@livewire(\'realtime-server-time\')'),
         );

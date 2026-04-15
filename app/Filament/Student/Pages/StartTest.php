@@ -2,6 +2,9 @@
 
 namespace App\Filament\Student\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Pages\Page;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Radio;
@@ -11,10 +14,11 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
+use Filament\Support\Enums\Alignment;
 
-class StartTest extends Page implements HasForms
+class StartTest extends Page implements HasForms, HasActions
 {
-    use InteractsWithForms;
+    use InteractsWithForms, InteractsWithActions;
 
     protected static bool $shouldRegisterNavigation = false;
 
@@ -51,6 +55,9 @@ class StartTest extends Page implements HasForms
     // Method untuk mengunci ujian
     public function lockExam(): void
     {
+        if (config('app.env') === 'local')
+            return;
+
         $this->isLocked = true;
 
         // Nanti di sini tambahkan logic database:
@@ -98,6 +105,23 @@ class StartTest extends Page implements HasForms
         if ($isAnswered)
             return 'answered';
         return 'unanswered';
+    }
+
+    public function submitAction(): Action
+    {
+        return Action::make('submit')
+            ->label('Submit & Kirim Ujian')
+            ->icon('heroicon-m-paper-airplane')
+            ->color('info')
+            ->size('lg')
+            ->requiresConfirmation()
+            ->modalHeading('Kirim Jawaban Ujian?')
+            ->modalDescription('Pastikan semua jawaban sudah benar. Setelah dikirim, Anda tidak dapat mengubah jawaban lagi.')
+            ->modalSubmitActionLabel('Ya, Kirim Sekarang')
+            ->modalCancelActionLabel('Batal')
+            ->modalIcon('heroicon-o-check-circle')
+            ->modalAlignment(Alignment::Center)
+            ->action(fn() => $this->submit());
     }
 
     public function form(Form $form): Form

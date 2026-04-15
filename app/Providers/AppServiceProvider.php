@@ -25,19 +25,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         FilamentView::registerRenderHook(
-            PanelsRenderHook::BODY_END,
-            function (): string {
-                if (app()->environment('production')) {
-                    return Blade::render('
-                    <script>
-                        document.oncontextmenu = function() { return false; };
-                    </script>
-                ');
-                }
-                return '';
-            },
-        );
-        FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_START,
             fn() => view('components.meta-tags'),
         );

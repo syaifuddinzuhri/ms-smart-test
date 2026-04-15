@@ -11,6 +11,50 @@
             </div>
         </div>
 
+        <!-- Section Detail Tes (Ringkas) -->
+        <div class="bg-white px-5 py-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Mapel -->
+                <div class="flex items-center gap-2.5">
+                    <x-heroicon-m-book-open class="w-5 h-5 text-gray-400" />
+                    <div class="space-y-1">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tight leading-none">Mapel</p>
+                        <p class="text-sm font-semibold text-gray-700 leading-tight">{{ $examData['mapel'] ?? '-' }}</p>
+                    </div>
+                </div>
+
+                <!-- Kategori -->
+                <div class="flex items-center gap-2.5">
+                    <x-heroicon-m-tag class="w-5 h-5 text-gray-400" />
+                    <div class="space-y-1">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tight leading-none">Kategori</p>
+                        <p class="text-sm font-semibold text-gray-700 leading-tight">{{ $examData['kategori'] ?? '-' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Jadwal -->
+                <div class="flex items-center gap-2.5">
+                    <x-heroicon-m-calendar-days class="w-5 h-5 text-gray-400" />
+                    <div class="space-y-1">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tight leading-none">Jadwal</p>
+                        <p class="text-sm font-semibold text-gray-700 leading-tight">{{ $examData['jadwal'] ?? '-' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Durasi -->
+                <div class="flex items-center gap-2.5">
+                    <x-heroicon-m-clock class="w-5 h-5 text-gray-400" />
+                    <div class="space-y-1">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tight leading-none">Durasi</p>
+                        <p class="text-sm font-semibold text-gray-700 leading-tight">{{ $examData['durasi'] ?? '0' }}
+                            Menit</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter">Skor Akhir</p>

@@ -44,7 +44,7 @@
     <!-- Navigasi & Tombol Ragu-ragu -->
     <div
         class="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-        <div class="flex gap-2 w-full md:w-auto">
+        <div class="flex gap-2 w-full justify-center md:justify-start">
             <x-filament::button color="gray" outlined wire:click="previous" icon="heroicon-m-arrow-left"
                 :disabled="$activeTab === 'pg' && $currentStep === 1">
                 Sebelumnya
@@ -64,9 +64,9 @@
             </x-filament::button>
         </div>
 
-        @if ($this->isAllAnswered())
-            <x-filament::button color="success" size="lg" wire:click="submit">Kirim Ujian</x-filament::button>
-        @endif
+        <div class="w-full flex justify-center md:justify-end">
+            {{ $this->submitAction }}
+        </div>
     </div>
 
     <!-- GRID NOMOR SOAL -->
