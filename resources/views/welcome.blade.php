@@ -4,12 +4,11 @@
 <head>
     <meta charset="utf-8">
     <title>Manusgi Smart Test</title>
-
-    <meta name="title" content="Smart Test MANU Sunan Giri">
+    <meta name="title" content="Smart Test MA NU Sunan Giri Prigen">
     <meta name="description"
-        content="Smart Test MANU Sunan Giri adalah sistem ujian online berbasis web yang aman, cepat, dan terintegrasi untuk mendukung pelaksanaan CBT (Computer Based Test) secara efektif dan efisien.">
+        content="Smart Test MA NU Sunan Giri Prigen adalah sistem ujian online berbasis web yang aman, cepat, dan terintegrasi untuk mendukung pelaksanaan CBT (Computer Based Test) secara efektif dan efisien.">
     <meta name="keywords"
-        content="smart test, manu sunan giri, ujian online, CBT, computer based test, sistem ujian sekolah, aplikasi ujian online, ujian berbasis komputer, e-learning, ujian digital, CBT madrasah, ujian MANU Sunan Giri">
+        content="smart test, ma nu sunan giri, ma nu sunan giri prigen, ujian online, CBT, computer based test, sistem ujian sekolah, aplikasi ujian online, ujian berbasis komputer, e-learning, ujian digital, CBT madrasah, ujian MA NU Sunan Giri Prigen">
 
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
@@ -31,19 +30,19 @@
     <meta name="theme-color" content="#ffffff">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="Smart Test MANU Sunan Giri">
+    <meta property="og:title" content="Smart Test MA NU Sunan Giri Prigen">
     <meta property="og:description"
-        content="Platform ujian online modern untuk CBT di MANU Sunan Giri yang aman, cepat, dan terintegrasi.">
+        content="Platform ujian online modern untuk CBT di MA NU Sunan Giri Prigen yang aman, cepat, dan terintegrasi.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ env('APP_URL') }}">
     <meta property="og:image" content="{{ env('APP_URL') }}/images/logo.png">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Smart Test MANU Sunan Giri">
-    <meta name="twitter:description" content="Sistem ujian online CBT MANU Sunan Giri yang modern, aman, dan efisien.">
+    <meta name="twitter:title" content="Smart Test MA NU Sunan Giri Prigen">
+    <meta name="twitter:description"
+        content="Sistem ujian online CBT MA NU Sunan Giri Prigen yang modern, aman, dan efisien.">
     <meta name="twitter:image" content="{{ env('APP_URL') }}/images/logo.png">
-
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
