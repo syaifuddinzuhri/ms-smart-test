@@ -55,8 +55,8 @@ class StartTest extends Page implements HasForms, HasActions
     // Method untuk mengunci ujian
     public function lockExam(): void
     {
-        if (config('app.env') === 'local')
-            return;
+        // if (config('app.env') === 'local')
+        //     return;
 
         $this->isLocked = true;
 
@@ -113,7 +113,7 @@ class StartTest extends Page implements HasForms, HasActions
             ->label('Submit & Kirim Ujian')
             ->icon('heroicon-m-paper-airplane')
             ->color('info')
-            ->size('lg')
+            ->size('md')
             ->requiresConfirmation()
             ->modalHeading('Kirim Jawaban Ujian?')
             ->modalDescription('Pastikan semua jawaban sudah benar. Setelah dikirim, Anda tidak dapat mengubah jawaban lagi.')

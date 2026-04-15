@@ -1,5 +1,19 @@
 <x-filament-panels::page>
-    <div class="relative">
+    <div x-data="{
+        isLocked: @entangle('isLocked'),
+        lockExam() {
+            if (!this.isLocked) {
+                $wire.call('lockExam');
+            }
+        }
+    }" @visibilitychange.window="if (document.hidden) lockExam()" @blur.window="lockExam()"
+        @keydown.window="
+        if ($event.keyCode == 123 || ($event.ctrlKey && $event.shiftKey && $event.keyCode == 73) || ($event.ctrlKey && $event.keyCode == 85) || $event.metaKey) {
+            lockExam();
+            $event.preventDefault();
+        }
+    "
+        class="relative">
         @if ($isLocked)
             <div
                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 24px;">
@@ -53,7 +67,7 @@
         </div>
     </div>
 
-    @script
+    {{-- @script
         <script>
             // Logika deteksi tetap sama karena sudah optimal
             document.addEventListener('visibilitychange', function() {
@@ -79,5 +93,5 @@
                 }
             };
         </script>
-    @endscript
+    @endscript --}}
 </x-filament-panels::page>
