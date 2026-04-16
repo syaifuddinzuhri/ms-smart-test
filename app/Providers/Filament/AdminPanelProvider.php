@@ -100,7 +100,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
-                fn() => Blade::render('@livewire(\'realtime-server-time\')'),
+                fn(): string => Blade::render('components.realtime-server-time'),
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
