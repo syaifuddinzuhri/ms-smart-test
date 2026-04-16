@@ -47,6 +47,38 @@ class QuestionPgWordImport
         $dataRows = array_slice($rows, 1);
         $chunks = array_chunk($dataRows, 5);
 
+        $maxOptionsFound = 0;
+        $validChunks = [];
+
+        foreach ($chunks as $chunk) {
+            $firstRowCells = $chunk[0]->getCells();
+            $questionText = $this->getCellValue($firstRowCells[1]);
+
+            if (empty($questionText))
+                continue;
+
+            $currentOptionsCount = 0;
+            foreach ($chunk as $row) {
+                $optionText = $this->getCellValue($row->getCells()[2] ?? null);
+                if (!empty($optionText)) {
+                    $currentOptionsCount++;
+                }
+            }
+
+            // Simpan jumlah opsi terbesar yang ditemukan di dokumen
+            if ($currentOptionsCount > $maxOptionsFound) {
+                $maxOptionsFound = $currentOptionsCount;
+            }
+
+            $validChunks[] = [
+                'question_text' => $questionText,
+                'chunk' => $chunk,
+                'options_count' => $currentOptionsCount
+            ];
+        }
+
+        $requiredOptions = max(3, min(5, $maxOptionsFound));
+
         foreach ($chunks as $index => $chunk) {
             // Kalkulasi baris (Header 1 + (index * 5) + 1 untuk start)
             $visualRow = ($index * 5) + 2;
@@ -78,8 +110,8 @@ class QuestionPgWordImport
 
             // Validasi Logika: Simpan ke importErrors, jangan langsung throw
             $errorMessage = null;
-            if (count($optionsData) < 3) {
-                $errorMessage = "Minimal harus ada 3 pilihan jawaban.";
+            if (count($optionsData) !== $requiredOptions) {
+                $errorMessage = "Jumlah opsi tidak selaras. Ditemukan soal lain dengan {$requiredOptions} opsi, maka soal ini wajib memiliki {$requiredOptions} opsi (Saat ini: " . count($optionsData) . ").";
             } elseif ($correctCount === 0) {
                 $errorMessage = "Belum ada kunci jawaban (angka 1).";
             }

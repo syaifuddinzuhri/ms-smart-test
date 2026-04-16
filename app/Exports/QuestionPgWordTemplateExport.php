@@ -37,7 +37,7 @@ class QuestionPgWordTemplateExport
         $table->addCell(800, $firstRowStyle)->addText("NO", ['bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
         $table->addCell(5000, $firstRowStyle)->addText("SOAL", ['bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
         $table->addCell(3500, $firstRowStyle)->addText("JAWABAN", ['bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
-        $table->addCell(800, $firstRowStyle)->addText("KUNCI", ['bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+        $table->addCell(1200, $firstRowStyle)->addText("KUNCI", ['bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
 
         // 3. Loop 50 Soal
         for ($i = 1; $i <= 50; $i++) {
@@ -46,7 +46,7 @@ class QuestionPgWordTemplateExport
             $table->addCell(800)->addText($i, null, ['alignment' => Jc::CENTER]);
             $table->addCell(5000)->addText($i === 1 ? "Contoh: Apa ibukota Indonesia?" : "");
             $table->addCell(3500)->addText($i === 1 ? "Jakarta" : "");
-            $table->addCell(800)->addText($i === 1 ? "1" : "", null, ['alignment' => Jc::CENTER]);
+            $table->addCell(1200)->addText($i === 1 ? "1" : "", null, ['alignment' => Jc::CENTER]);
 
             // Baris 2-5: Opsi B-E (Kolom SOAL diwarnai Kuning)
             $options = ['B', 'C', 'D', 'E'];
@@ -55,7 +55,7 @@ class QuestionPgWordTemplateExport
                 $table->addCell(800); // Kosong (Nomor)
                 $table->addCell(5000, $yellowStyle); // Kolom Soal Kuning
                 $table->addCell(3500)->addText($i === 1 && $opt === 'B' ? "Surabaya" : "");
-                $table->addCell(800); // Kosong (Kunci)
+                $table->addCell(1200); // Kosong (Kunci)
             }
         }
 

@@ -27,6 +27,27 @@ class QuestionPgImport implements ToCollection
         $dataRows = $rows->slice(7);
         $chunks = $dataRows->chunk(5);
 
+        // --- TAHAP 1: SCANNING UNTUK MENENTUKAN STANDAR JUMLAH OPSI ---
+        $maxOptionsFound = 0;
+        foreach ($chunks as $chunk) {
+            $questionText = $chunk->first()[1] ?? null;
+            if (empty($questionText))
+                continue;
+
+            $currentOptionsCount = 0;
+            foreach ($chunk as $row) {
+                if (!empty($row[2])) {
+                    $currentOptionsCount++;
+                }
+            }
+            if ($currentOptionsCount > $maxOptionsFound) {
+                $maxOptionsFound = $currentOptionsCount;
+            }
+        }
+
+        // Tentukan standar: minimal 3, maksimal 5 (berdasarkan temuan di file)
+        $requiredOptions = max(3, min(5, $maxOptionsFound));
+
         foreach ($chunks as $index => $chunk) {
             $nomorSoal = $index + 1;
             $excelRow = ($index * 5) + 8;
@@ -53,9 +74,11 @@ class QuestionPgImport implements ToCollection
                 }
             }
 
+            // Validasi Ketat & Selaras
             $errorMessage = null;
-            if (count($optionsData) < 3) {
-                $errorMessage = "Minimal harus ada 3 pilihan jawaban.";
+
+            if (count($optionsData) !== $requiredOptions) {
+                $errorMessage = "Jumlah opsi tidak selaras. Ditemukan soal lain dengan {$requiredOptions} opsi, maka soal ini wajib memiliki {$requiredOptions} opsi (Saat ini: " . count($optionsData) . ").";
             } elseif ($correctCount === 0) {
                 $errorMessage = "Belum ada kunci jawaban (angka 1).";
             }
