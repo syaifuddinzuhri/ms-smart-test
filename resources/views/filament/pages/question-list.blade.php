@@ -104,7 +104,7 @@
                         <div class="p-4">
                             {{-- KONTEN PERTANYAAN: Ukuran text disesuaikan --}}
                             <div class="prose max-w-none mt-6">
-                                <div class="text-gray-800 text-base font-medium leading-snug">
+                                <div class="text-gray-800 text-base font-medium leading-snug soal-content">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
@@ -132,8 +132,8 @@
                                             </div>
 
                                             {{-- Teks Jawaban --}}
-                                            <div @class([
-                                                'prose max-w-none text-[13px]',
+                                            <div dir="auto" @class([
+                                                'prose max-w-none text-[13px] soal-content',
                                                 'font-semibold text-emerald-900' => $opt->is_correct,
                                                 'text-gray-600' => !$opt->is_correct,
                                             ])>
@@ -212,7 +212,7 @@
                         <div class="p-4 pt-10">
                             {{-- PERTANYAAN --}}
                             <div class="prose max-w-none mt-6">
-                                <div class="text-gray-800 text-base font-medium leading-snug">
+                                <div class="text-gray-800 text-base font-medium leading-snug soal-content">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
@@ -287,7 +287,7 @@ ESSAY
                         <div class="p-4 pt-10">
                             {{-- PERTANYAAN --}}
                             <div class="prose max-w-none mt-6">
-                                <div class="text-gray-800 text-base font-medium leading-snug">
+                                <div class="text-gray-800 text-base font-medium leading-snug soal-content">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>

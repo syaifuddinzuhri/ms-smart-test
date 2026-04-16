@@ -39,11 +39,24 @@
 <meta name="twitter:image" content="{{ env('APP_URL') }}/images/logo.png">
 
 
+<link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 <style>
     .attachment__caption,
     .attachment__metadata,
     .attachment__name,
     .attachment__size {
         display: none !important;
+    }
+
+    .soal-content {
+        unicode-bidi: plaintext;
+        text-align: start !important;
+        line-height: 2;
+        font-family: ui-sans-serif, system-ui, 'Amiri', 'Traditional Arabic', serif;
+    }
+
+    .soal-content:lang(ar) {
+        font-size: 1.1rem;
+        line-height: 1.8;
     }
 </style>
