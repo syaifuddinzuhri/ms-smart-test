@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Pages\Page;
 use App\Enums\QuestionType;
 use App\Models\Question;
 use Filament\Forms\Components\FileUpload;
@@ -13,27 +14,46 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class CreateQuestion extends Page
+
+class EditQuestion extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $title = 'Edit Soal';
 
-    protected static ?string $navigationLabel = 'Tambah Soal';
-    protected static ?string $title = 'Tambah Soal';
-    protected static ?string $navigationGroup = 'Manajemen Soal';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $slug = 'edit-question/{record}';
 
-    protected static string $view = 'filament.pages.create-question';
+    protected static string $view = 'filament.pages.edit-question';
 
+    protected static bool $shouldRegisterNavigation = false;
+    public ?Question $record = null;
     public ?array $data = [];
 
-    public function mount(): void
+    public function mount($record): void
     {
-        $this->form->fill();
-        $this->data['options_count'] = 3;
+        $this->record = Question::with([
+            'options' => function ($query) {
+                $query->orderBy('order', 'asc');
+            },
+            'attachments'
+        ])->find($record->id);
+
+        $this->form->fill([
+            'subject_id' => $this->record->subject_id,
+            'question_category_id' => $this->record->question_category_id,
+            'question_type' => $this->record->question_type->value,
+            'question_text' => $this->record->question_text,
+            'correct_answer_text' => $this->record->correct_answer_text,
+            'external_link' => $this->record->external_link,
+            'options_count' => count($this->record->options),
+            'options' => $this->record->options->map(fn($opt) => [
+                'label' => $opt->label,
+                'text' => $opt->text,
+                'is_correct' => $opt->is_correct,
+            ])->toArray(),
+            'attachments' => $this->record->attachments->pluck('file_path')->toArray(),
+        ]);
     }
 
     public function form(Form $form): Form
@@ -259,10 +279,7 @@ class CreateQuestion extends Page
         $set('options', $options);
     }
 
-    // ========================
-    // CREATE
-    // ========================
-    public function create()
+    public function save()
     {
         $this->resetErrorBag();
 
@@ -330,8 +347,7 @@ class CreateQuestion extends Page
             // ========================
             // CREATE QUESTION
             // ========================
-            $question = Question::create([
-                'id' => Str::uuid(),
+            $this->record->update([
                 'subject_id' => $data['subject_id'],
                 'question_category_id' => $data['question_category_id'],
                 'question_type' => $data['question_type'],
@@ -343,11 +359,14 @@ class CreateQuestion extends Page
             // ========================
             // SAVE OPTIONS
             // ========================
+            $this->record->options()->delete();
+
             if (!empty($data['options'])) {
+                $labels = range('A', 'E');
                 foreach ($data['options'] as $index => $opt) {
-                    $question->options()->create([
+                    $this->record->options()->create([
                         'id' => Str::uuid(),
-                        'label' => $opt['label'],
+                        'label' => $labels[$index] ?? $opt['label'],
                         'text' => $opt['text'],
                         'is_correct' => (bool) $opt['is_correct'],
                         'order' => $index,
@@ -358,42 +377,68 @@ class CreateQuestion extends Page
             // ========================
             // SAVE ATTACHMENTS (QUESTION LEVEL)
             // ========================
-            if (!empty($data['attachments'])) {
-                foreach ($data['attachments'] as $index => $file) {
-                    $newPath = generateFilePath(
-                        'questions',
-                        $question->id,
-                        $index + 1,
-                        $file
-                    );
+            // 3. Update Attachments
+            if (isset($data['attachments']) && count($data['attachments']) > 0) {
+                // Ambil daftar path file yang sekarang ada di form
+                $currentFilePaths = $data['attachments'];
 
-                    moveQuestionFile($file, $newPath);
+                // 1. Hapus record & file fisik yang sudah tidak ada di form (User menekan tombol hapus di UI)
+                $deletedAttachments = $this->record->attachments()
+                    ->whereNotIn('file_path', $currentFilePaths)
+                    ->get();
 
-                    $question->attachments()->create([
-                        'id' => Str::uuid(),
-                        'file_path' => $newPath,
-                        'type' => detectFileType($newPath),
-                    ]);
+                foreach ($deletedAttachments as $attachment) {
+                    // Hapus file fisik dari storage jika perlu (opsional, tergantung helper moveQuestionFile Anda)
+                    // Storage::disk('public')->delete($attachment->file_path);
+
+                    $attachment->delete();
                 }
+
+                // 2. Tambahkan file yang benar-benar baru (biasanya berupa path temporary dari Livewire)
+                foreach ($currentFilePaths as $index => $file) {
+                    // Cek apakah file ini sudah ada di database (file lama)
+                    $isExisting = $this->record->attachments()
+                        ->where('file_path', $file)
+                        ->exists();
+
+                    if (!$isExisting) {
+                        // Ini adalah file baru, jalankan logika pemindahan file Anda
+                        $newPath = generateFilePath(
+                            'questions',
+                            $this->record->id,
+                            $index + 1, // Urutan berdasarkan posisi di array
+                            $file
+                        );
+
+                        moveQuestionFile($file, $newPath);
+
+                        $this->record->attachments()->create([
+                            'id' => Str::uuid(),
+                            'file_path' => $newPath,
+                            'type' => detectFileType($newPath),
+                        ]);
+                    }
+                }
+            } else {
+                // Jika input attachments kosong sama sekali, hapus semua lampiran lama
+                $this->record->attachments()->delete();
             }
 
             DB::commit();
 
             Notification::make()
-                ->title('Soal berhasil disimpan')
+                ->title('Soal berhasil diperbarui')
                 ->success()
                 ->send();
 
-            $this->form->fill();
-
-            // return redirect()->to(QuestionList::getUrl());
+            return redirect()->to(QuestionList::getUrl());
 
         } catch (\Throwable $e) {
 
             DB::rollBack();
 
             Notification::make()
-                ->title('Gagal menyimpan soal')
+                ->title('Gagal memperbarui soal')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

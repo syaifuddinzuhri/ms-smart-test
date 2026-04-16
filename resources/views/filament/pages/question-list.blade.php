@@ -76,14 +76,28 @@
                         class="relative bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group">
 
                         {{-- NOMOR SOAL: Dibuat lebih slim --}}
-                        <div class="absolute top-0 left-0">
+                        <div class="absolute top-0 left-0 flex overflow-hidden rounded-br-xl">
                             <div
-                                class="bg-green-600 group-hover:bg-green-700 transition-colors text-white px-3 py-1 rounded-br-xl shadow-sm">
+                                class="bg-green-600 group-hover:bg-green-700 transition-colors text-white px-3 py-1 shadow-sm">
                                 <div class="flex items-center gap-1.5 leading-none">
                                     <span
                                         class="text-[9px] uppercase tracking-wider font-semibold opacity-80">Soal</span>
                                     <span class="text-sm font-black">{{ $currentNumber }}</span>
                                 </div>
+                            </div>
+
+                            <div class="flex items-center bg-gray-50 border-gray-200 px-2 gap-2">
+                                {{-- Edit Button --}}
+                                <a href="{{ $this->getEditUrl($q->id) }}"
+                                    class="text-gray-400 hover:text-blue-600 transition">
+                                    <x-heroicon-m-pencil-square class="w-4 h-4" />
+                                </a>
+
+                                {{-- Delete Button (Filament Action) --}}
+                                <button wire:click="mountAction('deleteQuestion', { id: '{{ $q->id }}' })"
+                                    class="text-gray-400 hover:text-red-600 transition">
+                                    <x-heroicon-m-trash class="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
 
@@ -177,9 +191,18 @@
                                     <span class="text-sm font-black">{{ $currentNumber }}</span>
                                 </div>
                             </div>
-                            <div
-                                class="bg-blue-50 text-blue-700 px-2 py-1 text-[9px] uppercase tracking-tighter font-bold flex items-center border-r border-b border-blue-100">
-                                Isian
+                            <div class="flex items-center bg-gray-50 border-gray-200 px-2 gap-2">
+                                {{-- Edit Button --}}
+                                <a href="{{ $this->getEditUrl($q->id) }}"
+                                    class="text-gray-400 hover:text-blue-600 transition">
+                                    <x-heroicon-m-pencil-square class="w-4 h-4" />
+                                </a>
+
+                                {{-- Delete Button (Filament Action) --}}
+                                <button wire:click="mountAction('deleteQuestion', { id: '{{ $q->id }}' })"
+                                    class="text-gray-400 hover:text-red-600 transition">
+                                    <x-heroicon-m-trash class="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
 
@@ -241,9 +264,18 @@ ESSAY
                                     <span class="text-sm font-black">{{ $currentNumber }}</span>
                                 </div>
                             </div>
-                            <div
-                                class="bg-orange-50 text-orange-700 px-2 py-1 text-[9px] uppercase tracking-tighter font-bold flex items-center border-r border-b border-orange-100">
-                                Essay
+                            <div class="flex items-center bg-gray-50 border-gray-200 px-2 gap-2">
+                                {{-- Edit Button --}}
+                                <a href="{{ $this->getEditUrl($q->id) }}"
+                                    class="text-gray-400 hover:text-blue-600 transition">
+                                    <x-heroicon-m-pencil-square class="w-4 h-4" />
+                                </a>
+
+                                {{-- Delete Button (Filament Action) --}}
+                                <button wire:click="mountAction('deleteQuestion', { id: '{{ $q->id }}' })"
+                                    class="text-gray-400 hover:text-red-600 transition">
+                                    <x-heroicon-m-trash class="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
 

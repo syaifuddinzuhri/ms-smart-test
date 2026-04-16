@@ -6,14 +6,18 @@ use App\Enums\QuestionType;
 use App\Models\Question;
 use App\Models\QuestionCategory;
 use App\Models\Subject;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\WithPagination;
 
-class QuestionList extends Page
+class QuestionList extends Page implements HasActions
 {
-    use WithPagination;
+    use WithPagination, InteractsWithActions;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
@@ -68,7 +72,12 @@ class QuestionList extends Page
         }
 
         return Question::query()
-            ->with(['options', 'attachments'])
+            ->with([
+                'options' => function ($query) {
+                    $query->orderBy('order', 'asc');
+                },
+                'attachments'
+            ])
             ->where('subject_id', $this->filters['subject_id'])
             ->where('question_category_id', $this->filters['question_category_id']);
     }
@@ -89,7 +98,7 @@ class QuestionList extends Page
                 QuestionType::MULTIPLE_CHOICE->value,
                 QuestionType::TRUE_FALSE->value
             ])
-            ->paginate(1, ['*'], 'pgPage');
+            ->paginate(10, ['*'], 'pgPage');
     }
 
     public function getShortQuestions()
@@ -97,7 +106,7 @@ class QuestionList extends Page
         return $this->getQuestionsQuery()
             ->clone()
             ->where('question_type', QuestionType::SHORT_ANSWER->value)
-            ->paginate(1, ['*'], 'shortPage');
+            ->paginate(10, ['*'], 'shortPage');
     }
 
     public function getEssayQuestions()
@@ -105,7 +114,7 @@ class QuestionList extends Page
         return $this->getQuestionsQuery()
             ->clone()
             ->where('question_type', QuestionType::ESSAY->value)
-            ->paginate(1, ['*'], 'essayPage');
+            ->paginate(10, ['*'], 'essayPage');
     }
 
     public function getSummary()
@@ -127,5 +136,32 @@ class QuestionList extends Page
             'essay' => (clone $base)->where('question_type', QuestionType::ESSAY->value)->count(),
             'total' => (clone $base)->count(),
         ];
+    }
+
+    public function deleteQuestionAction(): Action
+    {
+        return Action::make('deleteQuestion')
+            ->requiresConfirmation()
+            ->modalHeading('Hapus Soal?')
+            ->modalDescription('Apakah Anda yakin ingin menghapus soal ini?')
+            ->modalSubmitActionLabel('Ya, Hapus')
+            ->color('danger')
+            ->action(function (array $arguments) {
+                $question = Question::find($arguments['id']);
+
+                if ($question) {
+                    $question->delete();
+
+                    Notification::make()
+                        ->title('Soal berhasil dihapus')
+                        ->success()
+                        ->send();
+                }
+            });
+    }
+
+    public function getEditUrl($id)
+    {
+        return EditQuestion::getUrl(['record' => $id]);
     }
 }
