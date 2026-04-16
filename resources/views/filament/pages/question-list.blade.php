@@ -160,15 +160,16 @@
                         </div>
                     </div>
 
-                    {{-- Render Pagination --}}
-                    <div class="mt-4">
-                        {{ $pgData->links() }}
-                    </div>
                 @empty
                     <x-filament::card class="text-center text-gray-400">
                         Tidak ada soal
                     </x-filament::card>
                 @endforelse
+
+                {{-- Render Pagination --}}
+                <div class="mt-4">
+                    {{ $pgData->links() }}
+                </div>
             </div>
 
             {{-- ========================
@@ -236,13 +237,13 @@
                         </div>
                     </div>
 
-                    {{-- Render Pagination --}}
-                    <div class="mt-4">
-                        {{ $shortData->links() }}
-                    </div>
                 @empty
                     <x-filament::card class="text-center text-gray-400">Tidak ada soal</x-filament::card>
                 @endforelse
+                {{-- Render Pagination --}}
+                <div class="mt-4">
+                    {{ $shortData->links() }}
+                </div>
             </div>
 
             {{-- ========================
@@ -305,12 +306,12 @@ ESSAY
                             </div>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        {{ $essayData->links() }}
-                    </div>
                 @empty
                     <x-filament::card class="text-center text-gray-400">Tidak ada soal</x-filament::card>
                 @endforelse
+                <div class="mt-4">
+                    {{ $essayData->links() }}
+                </div>
             </div>
 
         </div>
