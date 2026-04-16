@@ -20,10 +20,6 @@ return new class extends Migration {
             $table->enum('question_type', QuestionType::values())->default(QuestionType::SINGLE_CHOICE->value)->index();
             $table->text('correct_answer_text')->nullable();
 
-            $table->decimal('point_correct', 8, 2)->default(1);
-            $table->decimal('point_wrong', 8, 2)->default(0);
-            $table->decimal('point_null', 8, 2)->default(0);
-
             $table->string('external_link')->nullable();
 
             $table->timestamps();

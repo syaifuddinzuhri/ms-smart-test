@@ -94,36 +94,7 @@ class CreateQuestion extends Page
                                 }
                             }),
                     ])
-                    ->columnSpan(1),
-
-                // ========================
-                // NILAI
-                // ========================
-                Section::make('Pengaturan Nilai')
-                    ->schema([
-                        TextInput::make('point_correct')
-                            ->label('Poin Benar')
-                            ->numeric()
-                            ->default(1)
-                            ->live(onBlur: true)
-                            ->reactive()
-                            ->required(),
-                        TextInput::make('point_wrong')
-                            ->label('Poin Salah')
-                            ->numeric()
-                            ->default(0)
-                            ->live(onBlur: true)
-                            ->reactive()
-                            ->required(),
-                        TextInput::make('point_null')
-                            ->label('Poin Tidak Dijawab')
-                            ->numeric()
-                            ->default(0)
-                            ->live(onBlur: true)
-                            ->reactive()
-                            ->required(),
-                    ])
-                    ->columnSpan(1),
+                    ->columnSpanFull(),
 
                 // ========================
                 // SOAL
@@ -366,9 +337,6 @@ class CreateQuestion extends Page
                 'question_type' => $data['question_type'],
                 'question_text' => $data['question_text'],
                 'correct_answer_text' => $data['correct_answer_text'] ?? null,
-                'point_correct' => $data['point_correct'],
-                'point_wrong' => $data['point_wrong'],
-                'point_null' => $data['point_null'],
                 'external_link' => $data['external_link'] ?? null,
             ]);
 
