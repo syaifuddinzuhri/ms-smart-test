@@ -105,7 +105,6 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn(): string => Blade::render('filament.components.custom-styles'),
-            )
-            ->spa();
+            );
     }
 }
