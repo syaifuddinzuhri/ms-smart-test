@@ -64,6 +64,8 @@ class ImportQuestion extends Page
                                 ->required(),
                             Select::make('type')
                                 ->label('Tipe Soal dalam File')
+                                ->searchable()
+                                ->preload()
                                 ->options([
                                     'pg' => 'Pilihan Ganda (Single & Multiple)',
                                     'tf' => 'True / False',
