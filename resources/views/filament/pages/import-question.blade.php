@@ -1,6 +1,6 @@
 <x-filament-panels::page>
-    <div wire:loading wire:target="submit"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+    <div wire:loading.flex wire:target="submit"
+        class="fixed inset-0 z-[9999] items-center justify-center bg-gray-900/60 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 border border-gray-200">
             <x-filament::loading-indicator class="w-12 h-12 text-primary-600" />
             <div class="text-center">
