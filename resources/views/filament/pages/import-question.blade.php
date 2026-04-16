@@ -1,4 +1,20 @@
 <x-filament-panels::page>
+    <div wire:loading wire:target="submit"
+        class="fixed inset-0 z-[999] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center gap-4 border border-gray-200">
+            <x-filament::loading-indicator class="w-12 h-12 text-primary-600" />
+            <div class="text-center">
+                <p class="text-lg font-bold text-gray-900">Sedang Memproses Import...</p>
+                <p class="text-sm text-gray-500">Mohon tunggu, sistem sedang memvalidasi dan menyimpan data soal.</p>
+            </div>
+
+            {{-- Indeterminate Progress Bar --}}
+            <div class="w-64 h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                <div class="absolute inset-0 bg-primary-600 animate-progress-indeterminate"></div>
+            </div>
+        </div>
+    </div>
+
     <div>
         <x-filament::section>
             <x-slot name="heading">
@@ -26,8 +42,18 @@
         {{ $this->form }}
 
         <div class="mt-6 flex justify-end">
-            <x-filament::button type="submit" size="lg" icon="heroicon-m-check-circle">
-                Mulai Import Data
+            {{-- 2. Perbarui Tombol dengan wire:loading --}}
+            <x-filament::button type="submit" size="lg" icon="heroicon-m-check-circle"
+                wire:loading.attr="disabled" wire:target="submit">
+                {{-- Teks saat normal --}}
+                <span wire:loading.remove wire:target="submit">
+                    Mulai Import Data
+                </span>
+
+                {{-- Teks saat loading --}}
+                <span wire:loading wire:target="submit">
+                    Memproses...
+                </span>
             </x-filament::button>
         </div>
     </form>
@@ -61,5 +87,23 @@
             </x-filament::section>
         </div>
     @endif
+
+    <style>
+        @keyframes progress-indeterminate {
+            0% {
+                left: -100%;
+                width: 100%;
+            }
+
+            100% {
+                left: 100%;
+                width: 100%;
+            }
+        }
+
+        .animate-progress-indeterminate {
+            animation: progress-indeterminate 1.5s infinite linear;
+        }
+    </style>
 
 </x-filament-panels::page>

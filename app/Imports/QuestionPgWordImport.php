@@ -253,35 +253,16 @@ class QuestionPgWordImport
     private function renderElement($element)
     {
         $text = '';
-
-        // 1. Jika elemen adalah Rumus (Equation)
-        if ($element instanceof Equation || method_exists($element, 'getOMML')) {
-            return " " . $this->transformOmmlToMathml($element->getOMML()) . " ";
-        }
-
-        // 2. Jika elemen adalah TextBreak (Enter/Baris Baru)
-        if ($element instanceof TextBreak) {
-            return "<br>";
-        }
-
-        // 3. Jika elemen adalah Container (Paragraph, TextRun, dll)
-        if (method_exists($element, 'getElements')) {
+        if ($element instanceof Text) {
+            $text .= $element->getText();
+        } elseif ($element instanceof TextRun) {
             foreach ($element->getElements() as $child) {
-                // REKURSIF: Masuk ke dalam paragraf untuk mencari teks atau rumus
                 $text .= $this->renderElement($child);
             }
-
-            // Jika ini adalah paragraf, tambahkan baris baru setelahnya
-            if ($element instanceof Paragraph) {
-                $text .= "<br>";
-            }
+        } elseif (method_exists($element, 'getOMML')) {
+            $omml = $element->getOMML();
+            $text .= $this->transformOmmlToMathml($omml);
         }
-
-        // 4. Jika elemen adalah teks biasa
-        elseif (method_exists($element, 'getText')) {
-            $text .= $element->getText();
-        }
-
         return $text;
     }
 
