@@ -8,15 +8,10 @@ use App\Models\QuestionOption;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\Element\Cell;
-use PhpOffice\PhpWord\Element\TextRun;
-use PhpOffice\PhpWord\Element\Equation;
-use PhpOffice\PhpWord\Element\Text;
 use Exception;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use PhpOffice\PhpWord\Element\TextBreak;
-use PhpOffice\PhpWord\Style\Paragraph;
 
 class QuestionPgWordImport
 {
@@ -49,19 +44,7 @@ class QuestionPgWordImport
 
     public function import($filePath)
     {
-        libxml_use_internal_errors(true);
-
-        try {
-            // FIX: Gunakan Reader Word2007 secara eksplisit
-            $reader = IOFactory::createReader('Word2007');
-            if (!$reader->canRead($filePath)) {
-                throw new Exception("File tidak dapat dibaca atau format salah.");
-            }
-            $phpWord = $reader->load($filePath);
-        } catch (Exception $e) {
-            throw new Exception("Gagal memuat file Word: " . $e->getMessage());
-        }
-
+        $phpWord = IOFactory::load($filePath);
         $table = $this->findTable($phpWord);
 
         if (!$table)
@@ -241,68 +224,17 @@ class QuestionPgWordImport
     {
         if (!$cell instanceof Cell)
             return '';
-
-        $html = '';
-        foreach ($cell->getElements() as $element) {
-            $html .= $this->renderElement($element);
-        }
-
-        return $html;
-    }
-
-    private function renderElement($element)
-    {
         $text = '';
-        if ($element instanceof Text) {
-            $text .= $element->getText();
-        } elseif ($element instanceof TextRun) {
-            foreach ($element->getElements() as $child) {
-                $text .= $this->renderElement($child);
+        foreach ($cell->getElements() as $element) {
+            if (method_exists($element, 'getText')) {
+                $text .= $element->getText();
+            } elseif (method_exists($element, 'getElements')) {
+                foreach ($element->getElements() as $sub) {
+                    if (method_exists($sub, 'getText'))
+                        $text .= $sub->getText();
+                }
             }
-        } elseif (method_exists($element, 'getOMML')) {
-            $omml = $element->getOMML();
-            $text .= $this->transformOmmlToMathml($omml);
         }
-        return $text;
-    }
-
-    private function transformOmmlToMathml($omml)
-    {
-        $xslPath = resource_path('xml/OMML2MML.XSL');
-        if (!file_exists($xslPath))
-            return " [XSL Hilang] ";
-
-        // XSL Transpect bekerja paling baik jika OMML dibungkus seperti ini:
-        $ommlXml = '<?xml version="1.0" encoding="UTF-8"?>
-        <m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
-            ' . $omml . '
-        </m:oMath>';
-
-        $dom = new \DOMDocument();
-        // Gunakan LIBXML_NOERROR agar tidak crash jika XML word kotor
-        if (!@$dom->loadXML($ommlXml, LIBXML_NOERROR)) {
-            return " [XML Rumus Rusak] ";
-        }
-
-        $xsl = new \DOMDocument();
-        $xsl->load($xslPath);
-
-        $proc = new \XSLTProcessor();
-        $proc->importStyleSheet($xsl);
-
-        $mathml = $proc->transformToXML($dom);
-
-        if (!$mathml || empty(trim($mathml))) {
-            // Jika gagal, coba bungkus dengan tag m:oMathPara (alternatif)
-            $ommlXml = '<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">' . $omml . '</m:oMathPara>';
-            $dom->loadXML($ommlXml);
-            $mathml = $proc->transformToXML($dom);
-        }
-
-        // Bersihkan hasil
-        $mathml = preg_replace('/<\?xml.*\?>/', '', $mathml);
-        $mathml = str_replace(["\n", "\r", "\t"], '', $mathml);
-
-        return trim($mathml);
+        return trim($text);
     }
 }

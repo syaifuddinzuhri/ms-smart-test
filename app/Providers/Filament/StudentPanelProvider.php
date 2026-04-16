@@ -103,6 +103,7 @@ class StudentPanelProvider extends PanelProvider
                         }
                     </script>
                 '),
-            );
+            )
+            ->spa();
     }
 }
