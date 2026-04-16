@@ -103,11 +103,13 @@
 
                         <div class="p-4">
                             {{-- KONTEN PERTANYAAN: Ukuran text disesuaikan --}}
-                            <div class="prose max-w-none mb-4">
+                            <div class="prose max-w-none mt-4">
                                 <div class="text-gray-800 text-base font-medium leading-snug">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
+
+                            @include('filament.components.question-media', ['question' => $q])
 
                             {{-- PILIHAN JAWABAN: Grid gap lebih rapat --}}
                             <div class="grid gap-2">
@@ -208,11 +210,13 @@
 
                         <div class="p-4 pt-10">
                             {{-- PERTANYAAN --}}
-                            <div class="prose max-w-none mb-4">
+                            <div class="prose max-w-none mt-4">
                                 <div class="text-gray-800 text-base font-medium leading-snug">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
+
+                            @include('filament.components.question-media', ['question' => $q])
 
                             {{-- BOX JAWABAN --}}
                             <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-3">
@@ -281,11 +285,13 @@ ESSAY
 
                         <div class="p-4 pt-10">
                             {{-- PERTANYAAN --}}
-                            <div class="prose max-w-none mb-4">
+                            <div class="prose max-w-none mt-4">
                                 <div class="text-gray-800 text-base font-medium leading-snug">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
+
+                            @include('filament.components.question-media', ['question' => $q])
 
                             {{-- INFO PENILAIAN --}}
                             <div
