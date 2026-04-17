@@ -92,15 +92,25 @@ class QuestionPgWordImport
         }
 
         $pandoc = $this->getPandocPath();
-        $tempFile = storage_path('app/temp_' . Str::random(10) . '.md');
 
-        // Menambahkan 2>&1 untuk menangkap pesan error dari sistem operasi
+        $tempFile = storage_path('app/temp_' . Str::random(10) . '.html');
+
         $command = sprintf(
-            '%s %s -f docx -t gfm+pipe_tables --columns=1000 -o %s 2>&1',
+            '%s %s -f docx -t html --columns=1000 -o %s 2>&1',
             $pandoc,
             escapeshellarg($filePath),
             escapeshellarg($tempFile)
         );
+
+        // $tempFile = storage_path('app/temp_' . Str::random(10) . '.md');
+
+        // // Menambahkan 2>&1 untuk menangkap pesan error dari sistem operasi
+        // $command = sprintf(
+        //     '%s %s -f docx -t gfm+pipe_tables --columns=1000 -o %s 2>&1',
+        //     $pandoc,
+        //     escapeshellarg($filePath),
+        //     escapeshellarg($tempFile)
+        // );
 
         exec($command, $output, $returnVar);
 
@@ -122,36 +132,55 @@ class QuestionPgWordImport
     private function parseMarkdownTable($markdown)
     {
         $tableData = [];
+        $markdown = str_replace("\r\n", "\n", $markdown); // Normalisasi baris baru
 
-        // Jika Pandoc menghasilkan HTML (seperti contoh json_encode Anda)
-        if (str_contains($markdown, '<table') && str_contains($markdown, '<tr')) {
-            preg_match_all('/<tr>(.*?)<\/tr>/s', $markdown, $rows);
+        // --- MODE 1: HTML TABLE (Sering muncul di Ubuntu/Mac untuk sel kompleks) ---
+        if (preg_match('/<table/i', $markdown)) {
+            preg_match_all('/<tr[^>]*>(.*?)<\/tr>/is', $markdown, $rows);
 
             foreach ($rows[1] as $rowHtml) {
-                // Ambil konten di dalam <td> atau <th>
-                preg_match_all('/<t[ddh][^>]*>(.*?)<\/t[ddh]>/s', $rowHtml, $cols);
+                preg_match_all('/<t[dh][^>]*>(.*?)<\/t[dh]>/is', $rowHtml, $cols);
 
                 $cleanCols = array_map(function ($col) {
-                    // Bersihkan tag HTML di dalam sel tapi biarkan rumus mathjax jika ada
-                    $col = preg_replace('/<p[^>]*>/', '', $col);
-                    $col = str_replace('</p>', "\n", $col);
-                    return trim(strip_tags($col, '<span><div>'));
+                    // Konversi tag paragraph/break menjadi newline agar teks tidak menyatu
+                    $col = preg_replace('/<(p|br)[^>]*>/i', '', $col);
+                    $col = preg_replace('/<\/(p|br)>/i', "\n", $col);
+                    $col = html_entity_decode($col); // Decode entity seperti &nbsp; atau &quot;
+                    return trim(strip_tags($col, '<span><div><math>')); // Amankan tag rumus
                 }, $cols[1]);
 
-                if (!empty($cleanCols)) {
+                if (!empty($cleanCols))
                     $tableData[] = $cleanCols;
-                }
+            }
+
+            if (!empty($tableData))
+                return $tableData;
+        }
+
+        // --- MODE 2: PIPE TABLE (| Soal | Jawaban |) ---
+        $lines = explode("\n", $markdown);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (str_contains($line, '|')) {
+                $columns = array_map('trim', explode('|', trim($line, '|')));
+
+                // Skip baris separator seperti |---|---|
+                if (isset($columns[0]) && preg_match('/^[:\s-]*$/', $columns[0]))
+                    continue;
+
+                if (count($columns) >= 3)
+                    $tableData[] = $columns;
             }
         }
-        // Jika Pandoc menghasilkan format Pipe standard (|)
-        else {
-            $lines = explode("\n", str_replace("\r", "", $markdown));
+
+        // --- MODE 3: GRID TABLE (+---+---+) ---
+        // Jika Mode 2 gagal (biasanya Pandoc versi lama di Ubuntu), deteksi tanda '+'
+        if (empty($tableData)) {
             foreach ($lines as $line) {
-                $line = trim($line);
+                if (str_contains($line, '+--') || trim($line) === '')
+                    continue;
                 if (str_contains($line, '|')) {
                     $columns = array_map('trim', explode('|', trim($line, '|')));
-                    if (isset($columns[0]) && preg_match('/^[:\s-]*$/', $columns[0]))
-                        continue;
                     if (count($columns) >= 3)
                         $tableData[] = $columns;
                 }
