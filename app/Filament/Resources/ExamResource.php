@@ -6,7 +6,6 @@ use App\Filament\Resources\ExamResource\Pages;
 use App\Models\Exam;
 use App\Models\ExamCategory;
 use App\Models\Subject;
-use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -20,7 +19,6 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
-use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -75,10 +73,10 @@ class ExamResource extends Resource
                                 DateTimePicker::make('start_time')
                                     ->label('Waktu Mulai')
                                     ->required()
-                                    ->native(false) // Menggunakan picker Filament yang lebih rapi
-                                    ->displayFormat('d/m/Y H:i') // Format yang tampil di UI
-                                    ->format('Y-m-d H:i:00') // Format yang disimpan ke Database (detik dipaksa 00)
-                                    ->seconds(false), // Menghilangkan inputan detik di picker
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y H:i')
+                                    ->format('Y-m-d H:i:00')
+                                    ->seconds(false),
 
                                 DateTimePicker::make('end_time')
                                     ->label('Waktu Selesai')
@@ -88,11 +86,11 @@ class ExamResource extends Resource
                                     ->format('Y-m-d H:i:00')
                                     ->seconds(false),
 
-                                Select::make('classrooms') // Nama field harus sesuai nama relasi di Model Exam
+                                Select::make('classrooms')
                                     ->label('Target Kelas')
-                                    ->relationship('classrooms', 'name') // Mengambil dari relasi classrooms, kolom name
-                                    ->multiple() // Mengaktifkan pilihan ganda
-                                    ->preload() // Memuat data di awal agar user mudah mencari
+                                    ->relationship('classrooms', 'name')
+                                    ->multiple()
+                                    ->preload()
                                     ->searchable()
                                     ->required()
                                     ->getOptionLabelFromRecordUsing(fn($record) => "{$record->name} - {$record->major?->name}")
@@ -120,6 +118,40 @@ class ExamResource extends Resource
                                             ->schema([
                                                 TextInput::make('point_essay_max')->label('Poin Maksimal')->numeric()->default(10),
                                                 TextInput::make('point_essay_null')->label('Poin Kosong')->numeric()->default(0),
+                                            ])->columnSpan(1),
+                                    ]),
+                            ]),
+                        Tab::make('Pengaturan & Keamanan')
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        Section::make('Metode Pengacakan')
+                                            ->description('Tentukan bagaimana sistem mengacak komponen ujian.')
+                                            ->schema([
+                                                Select::make('random_question_type')
+                                                    ->label('Acak Urutan Soal')
+                                                    ->options([
+                                                        0 => 'Matikan (Urutan Tetap)',
+                                                        1 => 'Individu (Tiap peserta mendapatkan urutan berbeda)',
+                                                        2 => 'Massal (Satu urutan acak untuk semua peserta)',
+                                                    ])
+                                                    ->default(0)
+                                                    ->native(false)
+                                                    ->selectablePlaceholder(false),
+
+                                                \Filament\Forms\Components\Toggle::make('random_option_type')
+                                                    ->label('Acak Pilihan Jawaban')
+                                                    ->helperText('Jika aktif, urutan opsi (A, B, C, D, E) akan diacak untuk setiap peserta.')
+                                                    ->default(false),
+                                            ])->columnSpan(1),
+
+                                        Section::make('Hasil & Transparansi')
+                                            ->description('Pengaturan pasca ujian selesai.')
+                                            ->schema([
+                                                \Filament\Forms\Components\Toggle::make('show_result_to_student')
+                                                    ->label('Tampilkan Nilai ke Peserta')
+                                                    ->helperText('Peserta dapat melihat skor akhir setelah mereka menyelesaikan ujian.')
+                                                    ->default(false),
                                             ])->columnSpan(1),
                                     ]),
                             ]),
@@ -151,7 +183,6 @@ class ExamResource extends Resource
                 Tables\Columns\TextColumn::make('title')
                     ->label('Judul Ujian')
                     ->searchable()
-                    // Menampilkan Kelas & Jurusan sebagai sub-teks di bawah judul agar hemat ruang
                     ->description(function (Exam $record): string {
                         $classrooms = $record->classrooms->map(fn($c) => "{$c->name} ({$c->major?->name})");
 
@@ -159,7 +190,6 @@ class ExamResource extends Resource
                             return $classrooms->implode(', ');
                         }
 
-                        // Ambil 3 pertama, gabungkan, lalu tambahkan keterangan sisa
                         $firstThree = $classrooms->take(3)->implode(', ');
                         $remainingCount = $classrooms->count() - 3;
 
@@ -169,7 +199,6 @@ class ExamResource extends Resource
                 Tables\Columns\TextColumn::make('start_time')
                     ->label('Waktu')
                     ->dateTime('d F Y H:i')
-                    // Menampilkan End Time di bawah Start Time
                     ->description(fn(Exam $record): string => 'Selesai: ' . $record->end_time?->format('d F Y H:i')),
 
                 Tables\Columns\TextColumn::make('duration')
@@ -197,15 +226,14 @@ class ExamResource extends Resource
                     }),
             ])
             ->filters([
-                // Filter Multi-Select untuk Kelas
                 SelectFilter::make('classrooms')
                     ->label('Filter Kelas')
-                    ->multiple() // Memungkinkan pilih lebih dari satu kelas
-                    ->preload()  // Memuat data di awal agar user tinggal pilih
+                    ->multiple()
+                    ->preload()
                     ->relationship('classrooms', 'name')
                     ->searchable(),
 
-                // Filter untuk Status Waktu
+
                 SelectFilter::make('status')
                     ->label('Filter Status')
                     ->options([
@@ -232,7 +260,6 @@ class ExamResource extends Resource
             ->filtersFormColumns(2)
             ->filtersLayout(Tables\Enums\FiltersLayout::Modal)
             ->actions([
-                // Merapikan semua tombol ke dalam satu Dropdown "Aksi"
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('manageQuestions')
                         ->label('Kelola Soal')

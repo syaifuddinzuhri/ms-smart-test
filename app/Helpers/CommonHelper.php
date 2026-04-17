@@ -74,3 +74,35 @@ if (!function_exists('moveQuestionFile')) {
         return $newPath;
     }
 }
+
+if (!function_exists('getDeviceInfo')) {
+
+    function getDeviceInfo(): string
+    {
+        $userAgent = request()->userAgent();
+        $os = "Unknown OS";
+        $device = "Unknown Device";
+
+        // Deteksi OS / Merk HP dari User Agent
+        if (preg_match('/iphone/i', $userAgent)) {
+            $os = "iPhone";
+        } elseif (preg_match('/ipad/i', $userAgent)) {
+            $os = "iPad";
+        } elseif (preg_match('/android/i', $userAgent)) {
+            $os = "Android";
+            // Mencoba mengambil model HP dari string Android
+            if (preg_match('/android\s+([a-zA-Z0-9\-\s]+);/i', $userAgent, $matches)) {
+                $device = $matches[1];
+            }
+        } elseif (preg_match('/windows/i', $userAgent)) {
+            $os = "Windows PC";
+        } elseif (preg_match('/macintosh/i', $userAgent)) {
+            $os = "MacBook/iMac";
+        }
+
+        $browser = collect(['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera'])
+            ->first(fn($b) => str_contains($userAgent, $b)) ?? "Unknown Browser";
+
+        return "{$os} ({$device}) - {$browser}";
+    }
+}

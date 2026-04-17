@@ -33,8 +33,4 @@ class ExamSession extends Model
     {
         return $this->hasMany(ExamAnswer::class);
     }
-    public function questionOrders(): HasMany
-    {
-        return $this->hasMany(ExamQuestionOrder::class);
-    }
 }

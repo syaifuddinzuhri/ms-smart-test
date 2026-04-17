@@ -82,9 +82,4 @@ class Question extends Model
             ->withPivot('order')
             ->withTimestamps();
     }
-
-    public function questionOrders(): HasMany
-    {
-        return $this->hasMany(ExamQuestionOrder::class, 'question_id');
-    }
 }

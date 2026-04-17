@@ -16,6 +16,9 @@ return new class extends Migration {
             $table->foreignUuid('exam_id')->constrained('exams')->cascadeOnDelete();
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
 
+            $table->unsignedInteger('question_seed')->nullable();
+            $table->unsignedInteger('option_seed')->nullable();
+
             $table->enum('status', ExamStatus::values())->default(ExamStatus::PENDING->value);
             $table->dateTime('started_at')->nullable();
             $table->dateTime('finished_at')->nullable();

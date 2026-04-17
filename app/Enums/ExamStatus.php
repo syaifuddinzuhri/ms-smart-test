@@ -14,6 +14,7 @@ enum ExamStatus: string implements HasLabel, HasColor
     case PENDING = 'pending'; // Ujian belum dibuka jadwalnya
     case NOT_STARTED = 'not_started'; // Ujian sudah buka, tapi siswa belum mulai
     case ONGOING = 'ongoing'; // Siswa sedang mengerjakan
+    case PAUSE = 'pause'; // Pause
     case COMPLETED = 'completed'; // Siswa sudah selesai
 
     public function getLabel(): ?string
@@ -22,6 +23,7 @@ enum ExamStatus: string implements HasLabel, HasColor
             self::PENDING => 'Menunggu Jadwal',
             self::NOT_STARTED => 'Belum Dikerjakan',
             self::ONGOING => 'Sedang Berlangsung',
+            self::PAUSE => 'Terjeda',
             self::COMPLETED => 'Sudah Selesai',
         };
     }
@@ -32,6 +34,7 @@ enum ExamStatus: string implements HasLabel, HasColor
             self::PENDING => 'gray',
             self::NOT_STARTED => 'danger',
             self::ONGOING => 'warning',
+            self::PAUSE => 'info',
             self::COMPLETED => 'success',
         };
     }

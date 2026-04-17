@@ -14,10 +14,11 @@ return new class extends Migration {
             $table->uuid('id')->primary();
             $table->foreignUuid('academic_year_id')->constrained('academic_years')->cascadeOnDelete();
             $table->string('name');
-            $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+
+            $table->unique(['name', 'academic_year_id'], 'unique_name_per_academic_year');
         });
     }
 
