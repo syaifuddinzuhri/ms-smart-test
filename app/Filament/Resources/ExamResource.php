@@ -18,7 +18,9 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
+use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -145,19 +147,38 @@ class ExamResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')->searchable(),
-                Tables\Columns\TextColumn::make('classrooms')
-                    ->label('Kelas & Jurusan')
-                    ->badge()
-                    ->color('success')
-                    ->getStateUsing(fn($record) => $record->classrooms->map(function ($classroom) {
-                        return "{$classroom->name} ({$classroom->major?->name})";
-                    }))
-                    ->separator(','),
-                Tables\Columns\TextColumn::make('start_time')->dateTime('d M Y H:i'),
-                Tables\Columns\TextColumn::make('duration')->suffix(' mnt'),
+                Tables\Columns\TextColumn::make('title')
+                    ->label('Judul Ujian')
+                    ->searchable()
+                    // Menampilkan Kelas & Jurusan sebagai sub-teks di bawah judul agar hemat ruang
+                    ->description(function (Exam $record): string {
+                        $classrooms = $record->classrooms->map(fn($c) => "{$c->name} ({$c->major?->name})");
+
+                        if ($classrooms->count() <= 3) {
+                            return $classrooms->implode(', ');
+                        }
+
+                        // Ambil 3 pertama, gabungkan, lalu tambahkan keterangan sisa
+                        $firstThree = $classrooms->take(3)->implode(', ');
+                        $remainingCount = $classrooms->count() - 3;
+
+                        return "{$firstThree} ... (+{$remainingCount} lainnya)";
+                    }),
+
+                Tables\Columns\TextColumn::make('start_time')
+                    ->label('Waktu')
+                    ->dateTime('d F Y H:i')
+                    // Menampilkan End Time di bawah Start Time
+                    ->description(fn(Exam $record): string => 'Selesai: ' . $record->end_time?->format('d F Y H:i')),
+
+                Tables\Columns\TextColumn::make('duration')
+                    ->label('Durasi')
+                    ->numeric()
+                    ->suffix(' Menit')
+                    ->alignCenter(),
+
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status Waktu')
+                    ->label('Status')
                     ->badge()
                     ->getStateUsing(function (Exam $record): string {
                         $now = now();
@@ -171,17 +192,26 @@ class ExamResource extends Resource
                         'Belum Mulai' => 'gray',
                         'Berlangsung' => 'success',
                         'Selesai' => 'danger',
+                        default => 'gray'
                     }),
             ])
             ->actions([
-                Tables\Actions\Action::make('manageQuestions')
-                    ->label('Kelola Soal')
-                    ->icon('heroicon-o-academic-cap')
-                    ->color('success')
-                    ->url(fn(Exam $record): string => static::getUrl('edit', ['record' => $record]) . '#questions'),
+                // Merapikan semua tombol ke dalam satu Dropdown "Aksi"
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('manageQuestions')
+                        ->label('Kelola Soal')
+                        ->icon('heroicon-o-academic-cap')
+                        ->color('info')
+                        ->url(fn(Exam $record): string => static::getUrl('edit', ['record' => $record]) . '#questions'),
 
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->size(ActionSize::Small)
+                    ->color('gray')
+                    ->button(),
             ]);
     }
 
