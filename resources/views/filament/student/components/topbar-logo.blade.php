@@ -12,5 +12,5 @@
 </style>
 
 <div class="topbar-custom-logo flex items-center gap-3 px-3">
-    <img src="{{ asset('images/logo.png') }}" class="h-8 w-auto">
+    <img src="{{ asset('images/logo.webp') }}" class="h-8 w-auto">
 </div>

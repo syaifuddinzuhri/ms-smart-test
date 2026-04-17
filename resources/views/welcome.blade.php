@@ -35,14 +35,14 @@
         content="Platform ujian online modern untuk CBT di MA NU Sunan Giri Prigen yang aman, cepat, dan terintegrasi.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ env('APP_URL') }}">
-    <meta property="og:image" content="{{ env('APP_URL') }}/images/logo.png">
+    <meta property="og:image" content="{{ env('APP_URL') }}/images/logo.webp">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Smart Test MA NU Sunan Giri Prigen">
     <meta name="twitter:description"
         content="Sistem ujian online CBT MA NU Sunan Giri Prigen yang modern, aman, dan efisien.">
-    <meta name="twitter:image" content="{{ env('APP_URL') }}/images/logo.png">
+    <meta name="twitter:image" content="{{ env('APP_URL') }}/images/logo.webp">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -66,7 +66,7 @@
             <div class="flex justify-between h-16 items-center">
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo" class="h-10 w-auto">
+                    <img src="{{ asset('images/logo.webp') }}" alt="Logo" class="h-10 w-auto">
                     <span class="font-bold text-xl tracking-tight uppercase">
                         Manusgi <span class="text-emerald-600">Smart Test</span>
                     </span>

@@ -29,14 +29,14 @@
     content="Platform ujian online modern untuk CBT di MA NU Sunan Giri Prigen yang aman, cepat, dan terintegrasi.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ env('APP_URL') }}">
-<meta property="og:image" content="{{ env('APP_URL') }}/images/logo.png">
+<meta property="og:image" content="{{ env('APP_URL') }}/images/logo.webp">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Smart Test MA NU Sunan Giri Prigen">
 <meta name="twitter:description"
     content="Sistem ujian online CBT MA NU Sunan Giri Prigen yang modern, aman, dan efisien.">
-<meta name="twitter:image" content="{{ env('APP_URL') }}/images/logo.png">
+<meta name="twitter:image" content="{{ env('APP_URL') }}/images/logo.webp">
 
 <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 
