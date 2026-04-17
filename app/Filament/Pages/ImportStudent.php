@@ -245,7 +245,7 @@ class ImportStudent extends Page
 
     public function downloadTemplate()
     {
-        return Excel::download(new StudentTemplateExport, 'template-peserta-manusgi-smart-test.xlsx');
+        return Excel::download(new StudentTemplateExport, 'template_peserta_' . now()->format('Ymd_His') . '.xlsx');
     }
 
     protected function getHeaderActions(): array

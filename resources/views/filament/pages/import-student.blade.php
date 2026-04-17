@@ -1,4 +1,19 @@
 <x-filament-panels::page>
+    {{-- Loading Overlay --}}
+    <div wire:loading.flex wire:target="previewImport, saveImport"
+        class="fixed inset-0 z-[9999] items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 border border-gray-200">
+            <x-filament::loading-indicator class="w-12 h-12 text-primary-600" />
+            <div class="text-center">
+                <p class="text-lg font-bold text-gray-900">Sedang Memproses Import...</p>
+                <p class="text-sm text-gray-500">Mohon tunggu, sistem sedang memvalidasi dan menyimpan data soal.</p>
+            </div>
+            <div class="w-64 h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                <div class="absolute inset-0 bg-primary-600 animate-progress-indeterminate"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 gap-6">
 
         <!-- Kolom Atas: Panduan & Batasan -->
