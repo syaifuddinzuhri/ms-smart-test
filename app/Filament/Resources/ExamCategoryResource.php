@@ -16,6 +16,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class ExamCategoryResource extends Resource
 {
@@ -47,6 +48,17 @@ class ExamCategoryResource extends Resource
                             ->preload()
                             ->required(),
                         TextInput::make('name')
+                            ->live(onBlur: true)
+                            ->maxLength(255)
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: function (Unique $rule, $get) {
+                                    return $rule->where('academic_year_id', $get('academic_year_id'));
+                                }
+                            )
+                            ->validationMessages([
+                                'unique' => 'Kategori dengan nama ini sudah ada di tahun ajaran tersebut.',
+                            ])
                             ->label('Nama Kategori')
                             ->placeholder('Contoh: Ujian Tengah Semester')
                             ->required()
@@ -65,17 +77,14 @@ class ExamCategoryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')
-                    ->label('Nama Kategori')
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nama')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('academicYear.name')
                     ->label('Tahun Ajaran')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('slug')
-                    ->badge()
-                    ->color('gray'),
                 IconColumn::make('is_active')
                     ->label('Status')
                     ->boolean(),
