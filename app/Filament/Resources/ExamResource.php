@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ExamStatus;
 use App\Filament\Resources\ExamResource\Pages;
 use App\Models\Exam;
 use App\Models\ExamCategory;
@@ -16,8 +17,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\ActionSize;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -30,12 +33,12 @@ class ExamResource extends Resource
 
     protected static ?string $navigationLabel = 'Daftar Ujian';
 
-    protected static ?string $modelLabel = 'Daftar Ujian';
     protected static ?string $pluralModelLabel = 'Daftar Ujian';
 
     protected static ?string $navigationGroup = 'Manajemen Ujian';
 
     protected static ?int $navigationSort = 2;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -156,7 +159,8 @@ class ExamResource extends Resource
                                     ]),
                             ]),
                     ])->columnSpanFull(),
-            ]);
+            ])
+            ->disabled(fn(?Exam $record) => $record?->status === ExamStatus::CLOSED);
     }
 
     protected static function updateTitle(Set $set, Get $get): void
@@ -306,16 +310,75 @@ class ExamResource extends Resource
                     Tables\Actions\Action::make('manageQuestions')
                         ->label('Kelola Soal')
                         ->icon('heroicon-o-academic-cap')
-                        ->color('info')
+                        ->color('gray')
                         ->url(fn(Exam $record): string => static::getUrl('manage-questions', ['record' => $record])),
 
                     Tables\Actions\Action::make('manageTokens')
                         ->label('Kelola Token')
                         ->icon('heroicon-o-key')
-                        ->color('warning')
+                        ->color('gray')
                         ->url(fn(Exam $record): string => static::getUrl('manage-tokens', ['record' => $record])),
 
-                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('updateStatus')
+                        ->label('Update Status')
+                        ->icon('heroicon-m-arrow-path')
+                        ->color('gray')
+                        ->visible(fn(Exam $record) => $record->status !== ExamStatus::CLOSED)
+                        ->modalWidth(MaxWidth::Medium)
+                        ->modalHeading('Perbarui Status Ujian')
+                        ->modalDescription('Pilih status baru untuk ujian ini. Pastikan transisi status sudah sesuai.')
+                        ->modalSubmitAction(
+                            fn(\Filament\Actions\StaticAction $action) => $action
+                                ->label('Simpan Perubahan')
+                                ->color('primary'),
+                        )
+                        ->form([
+                            Select::make('status')
+                                ->label('Status Baru')
+                                ->options(ExamStatus::class)
+                                ->default(fn(Exam $record) => $record->status->value)
+                                ->selectablePlaceholder(false)
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+                        ])
+                        ->action(function (Exam $record, array $data) {
+                            $oldStatus = $record->status;
+                            $newStatus = ExamStatus::from($data['status']);
+
+                            if ($oldStatus === $newStatus)
+                                return;
+
+                            $allowedTransitions = match ($oldStatus) {
+                                ExamStatus::DRAFT => [ExamStatus::ACTIVE, ExamStatus::INACTIVE, ExamStatus::CLOSED],
+                                ExamStatus::ACTIVE => [ExamStatus::INACTIVE, ExamStatus::CLOSED],
+                                ExamStatus::INACTIVE => [ExamStatus::ACTIVE, ExamStatus::CLOSED],
+                                ExamStatus::CLOSED => [],
+                                default => [],
+                            };
+
+                            if (!in_array($newStatus, $allowedTransitions)) {
+                                Notification::make()
+                                    ->title('Transisi Status Gagal')
+                                    ->body("Status {$oldStatus->getLabel()} tidak bisa diubah langsung ke {$newStatus->getLabel()}.")
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $record->update(['status' => $newStatus]);
+
+                            Notification::make()
+                                ->title('Status Berhasil Diperbarui')
+                                ->body("Ujian kini berstatus {$newStatus->getLabel()}")
+                                ->success()
+                                ->send();
+                        }),
+
+                    Tables\Actions\EditAction::make()
+                        ->icon(fn($record) => $record->status === ExamStatus::CLOSED ? 'heroicon-m-lock-closed' : 'heroicon-m-pencil-square')
+                        ->label(fn($record) => $record->status === ExamStatus::CLOSED ? 'Lihat Detail' : 'Edit'),
                     Tables\Actions\DeleteAction::make(),
                 ])
                     ->label('Aksi')
