@@ -21,6 +21,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
 use Filament\Tables\Enums\ActionsPosition;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -195,6 +196,41 @@ class ExamResource extends Resource
                         default => 'gray'
                     }),
             ])
+            ->filters([
+                // Filter Multi-Select untuk Kelas
+                SelectFilter::make('classrooms')
+                    ->label('Filter Kelas')
+                    ->multiple() // Memungkinkan pilih lebih dari satu kelas
+                    ->preload()  // Memuat data di awal agar user tinggal pilih
+                    ->relationship('classrooms', 'name')
+                    ->searchable(),
+
+                // Filter untuk Status Waktu
+                SelectFilter::make('status')
+                    ->label('Filter Status')
+                    ->options([
+                        'belum_mulai' => 'Belum Mulai',
+                        'berlangsung' => 'Berlangsung',
+                        'selesai' => 'Selesai',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $now = now();
+                        return $query->when($data['value'], function ($query, $value) use ($now) {
+                            if ($value === 'belum_mulai') {
+                                return $query->where('start_time', '>', $now);
+                            }
+                            if ($value === 'berlangsung') {
+                                return $query->where('start_time', '<=', $now)
+                                    ->where('end_time', '>=', $now);
+                            }
+                            if ($value === 'selesai') {
+                                return $query->where('end_time', '<', $now);
+                            }
+                        });
+                    }),
+            ])
+            ->filtersFormColumns(2)
+            ->filtersLayout(Tables\Enums\FiltersLayout::Modal)
             ->actions([
                 // Merapikan semua tombol ke dalam satu Dropdown "Aksi"
                 Tables\Actions\ActionGroup::make([
