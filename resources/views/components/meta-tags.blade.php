@@ -49,16 +49,31 @@
     }
 
     .soal-content {
+        /* Letakkan Amiri di depan agar diprioritaskan oleh browser */
         unicode-bidi: plaintext;
         text-align: start !important;
         line-height: 2;
+        /* Sangat penting untuk teks Arab agar harakat tidak bertumpuk */
         visibility: visible;
-        font-family: ui-sans-serif, system-ui, 'Amiri', 'Traditional Arabic', serif;
     }
 
+    /* Spesifik untuk teks yang terdeteksi sebagai Arab */
+    /* Jika konten Anda memiliki atribut lang="ar" */
     .soal-content:lang(ar) {
-        font-size: 1.1rem;
-        line-height: 1.8;
+        font-family: 'Amiri', ui-sans-serif, system-ui, serif;
+        font-size: 1.25rem;
+        /* Teks Arab biasanya terlihat lebih kecil, perlu diperbesar */
+        line-height: 2.2;
+        direction: rtl;
+    }
+
+    /* Fallback jika tidak ada atribut lang, pastikan font-size cukup besar */
+    /* Karena Amiri adalah font serif, kita gunakan stack serif sebagai cadangan */
+    [dir="rtl"].soal-content,
+    .soal-content[style*="direction: rtl"],
+    .soal-content[style*="text-align: right"] {
+        font-family: 'Amiri', ui-sans-serif, system-ui, serif;
+        font-size: 1.25rem;
     }
 
     mark {
