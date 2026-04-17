@@ -69,6 +69,10 @@ class ExamCategoryResource extends Resource
                     ->label('Nama Kategori')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('academicYear.name')
+                    ->label('Tahun Ajaran')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('slug')
                     ->badge()
                     ->color('gray'),

@@ -50,6 +50,7 @@ class ExamResource extends Resource
                                     ->live()
                                     ->searchable()
                                     ->preload()
+                                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->name} - {$record->academicYear?->name}")
                                     ->afterStateUpdated(fn(Set $set, Get $get) => self::updateTitle($set, $get)),
                                 Select::make('subject_id')
                                     ->label('Mata Pelajaran')
