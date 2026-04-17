@@ -51,7 +51,6 @@ class Exam extends Model
     {
         return $this->belongsTo(Subject::class);
     }
-    // app/Models/Exam.php
 
     public function classrooms(): BelongsToMany
     {
