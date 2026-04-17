@@ -207,23 +207,29 @@ class ExamResource extends Resource
                     ->suffix(' Menit')
                     ->alignCenter(),
 
+                Tables\Columns\TextColumn::make('total_soal')
+                    ->label('Butir Soal')
+                    ->getStateUsing(fn(Exam $record) => $record->pg_count + $record->short_count + $record->essay_count)
+                    ->weight('bold')
+                    ->badge()
+                    ->color('success')
+                    ->icon('heroicon-s-circle-stack')
+                    ->description(function (Exam $record): \Illuminate\Support\HtmlString {
+                        return new \Illuminate\Support\HtmlString("
+                            <div class='flex gap-1.5 mt-1 text-[10px] font-bold uppercase tracking-tighter'>
+                                <span class='text-emerald-600'>PG: {$record->pg_count}</span>
+                                <span class='text-gray-300'>|</span>
+                                <span class='text-blue-600'>Skt: {$record->short_count}</span>
+                                <span class='text-gray-300'>|</span>
+                                <span class='text-amber-600'>Esy: {$record->essay_count}</span>
+                            </div>
+                        ");
+                    })
+                    ->alignCenter(),
+
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
-                    ->badge()
-                    ->getStateUsing(function (Exam $record): string {
-                        $now = now();
-                        if ($now < $record->start_time)
-                            return 'Belum Mulai';
-                        if ($now > $record->end_time)
-                            return 'Selesai';
-                        return 'Berlangsung';
-                    })
-                    ->color(fn(string $state): string => match ($state) {
-                        'Belum Mulai' => 'gray',
-                        'Berlangsung' => 'success',
-                        'Selesai' => 'danger',
-                        default => 'gray'
-                    }),
+                    ->badge(),
             ])
             ->filters([
                 SelectFilter::make('classrooms')
@@ -265,7 +271,13 @@ class ExamResource extends Resource
                         ->label('Kelola Soal')
                         ->icon('heroicon-o-academic-cap')
                         ->color('info')
-                        ->url(fn(Exam $record): string => static::getUrl('edit', ['record' => $record]) . '#questions'),
+                        ->url(fn(Exam $record): string => static::getUrl('manage-questions', ['record' => $record])),
+
+                    // Tables\Actions\Action::make('manageTokens')
+                    //     ->label('Kelola Token')
+                    //     ->icon('heroicon-o-key')
+                    //     ->color('warning')
+                    //     ->url(fn(Exam $record): string => static::getUrl('manage-tokens', ['record' => $record])),
 
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make(),
@@ -285,6 +297,21 @@ class ExamResource extends Resource
                 'classrooms.major',
                 'category',
                 'subject'
+            ])
+            ->withCount([
+                'questions as pg_count' => function (Builder $query) {
+                    $query->whereIn('question_type', [
+                        \App\Enums\QuestionType::SINGLE_CHOICE->value,
+                        \App\Enums\QuestionType::MULTIPLE_CHOICE->value,
+                        \App\Enums\QuestionType::TRUE_FALSE->value,
+                    ]);
+                },
+                'questions as short_count' => function (Builder $query) {
+                    $query->where('question_type', \App\Enums\QuestionType::SHORT_ANSWER->value);
+                },
+                'questions as essay_count' => function (Builder $query) {
+                    $query->where('question_type', \App\Enums\QuestionType::ESSAY->value);
+                },
             ]);
     }
 
@@ -301,6 +328,7 @@ class ExamResource extends Resource
             'index' => Pages\ListExams::route('/'),
             'create' => Pages\CreateExam::route('/create'),
             'edit' => Pages\EditExam::route('/{record}/edit'),
+            'manage-questions' => Pages\ManageExamQuestions::route('/{record}/manage-questions'),
         ];
     }
 }

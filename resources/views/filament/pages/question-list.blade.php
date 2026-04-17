@@ -115,11 +115,9 @@
 
                         <div class="p-4">
                             {{-- KONTEN PERTANYAAN: Ukuran text disesuaikan --}}
-                            <div class="prose max-w-none mt-6">
-                                <div
-                                    class="prose max-w-none mt-6 text-gray-800 text-base font-medium leading-snug soal-content">
-                                    {!! $q->question_text !!}
-                                </div>
+                            <div
+                                class="prose max-w-none mt-6 text-gray-800 text-base font-medium leading-snug soal-content">
+                                {!! $q->question_text !!}
                             </div>
 
                             @include('filament.components.question-media', ['question' => $q])

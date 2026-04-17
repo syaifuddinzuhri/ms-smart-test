@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ExamStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class Exam extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'status' => ExamStatus::class,
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'can_resume' => 'boolean',
@@ -64,9 +66,17 @@ class Exam extends Model
     {
         return $this->hasMany(ExamToken::class);
     }
+
+    public function examQuestions(): HasMany
+    {
+        return $this->hasMany(ExamQuestion::class)->orderBy('order');
+    }
+
     public function questions(): BelongsToMany
     {
-        return $this->belongsToMany(Question::class, 'exam_questions')->withPivot('order')->withTimestamps();
+        return $this->belongsToMany(Question::class, 'exam_questions')
+            ->withPivot('order')
+            ->orderBy('exam_questions.order');
     }
     public function sessions(): HasMany
     {

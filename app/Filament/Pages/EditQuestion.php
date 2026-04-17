@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use App\Enums\QuestionType;
 use App\Models\Question;
+use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -29,7 +30,9 @@ class EditQuestion extends Page
     protected static string $view = 'filament.pages.edit-question';
 
     protected static bool $shouldRegisterNavigation = false;
+
     public ?Question $record = null;
+
     public ?array $data = [];
 
     public function mount($record): void
@@ -267,9 +270,6 @@ class EditQuestion extends Page
             ->statePath('data');
     }
 
-    // ========================
-    // GENERATE OPTIONS
-    // ========================
     public static function generateOptions($count, $set)
     {
         if (!$count)
@@ -467,5 +467,16 @@ class EditQuestion extends Page
                 ->danger()
                 ->send();
         }
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('back')
+                ->label('Kembali')
+                ->icon('heroicon-m-arrow-left')
+                ->color('gray')
+                ->url(fn() => QuestionList::getUrl()),
+        ];
     }
 }

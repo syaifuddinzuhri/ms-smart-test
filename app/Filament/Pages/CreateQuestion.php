@@ -426,7 +426,7 @@ class CreateQuestion extends Page
 
             $this->form->fill();
 
-            // return redirect()->to(QuestionList::getUrl());
+            return redirect()->to(QuestionList::getUrl());
 
         } catch (\Throwable $e) {
 
