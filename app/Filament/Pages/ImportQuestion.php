@@ -89,7 +89,7 @@ class ImportQuestion extends Page
                                 ->directory('temp-imports')
                                 ->required()
                                 ->preserveFilenames()
-                                ->maxSize(50 * 1024 * 1024)
+                                ->maxSize(20 * 1024 * 1024)
                                 ->rules(['extensions:xlsx,docx,zip'])
                                 ->validationMessages([
                                     'accepted_file_types' => 'Format file harus berupa .xlsx, .docx, atau .zip.',
@@ -102,7 +102,7 @@ class ImportQuestion extends Page
         <p>Ketentuan Unggah:</p>
         <ul class="list-disc ml-4 space-y-1">
             <li>Mendukung file <b>.xlsx</b>, <b>.docx</b>, atau <b>.zip</b>.</li>
-            <li>Ukuran maksimal file upload adalah <b>50 MB</b>.</li>
+            <li>Ukuran maksimal file upload adalah <b>20 MB</b>.</li>
         </ul>
     </div>
 ')),
