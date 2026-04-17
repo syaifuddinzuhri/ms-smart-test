@@ -104,7 +104,16 @@
                         <div class="p-4">
                             {{-- KONTEN PERTANYAAN: Ukuran text disesuaikan --}}
                             <div class="prose max-w-none mt-6">
-                                <div class="text-gray-800 text-base font-medium leading-snug soal-content">
+                                <div class="text-gray-800 text-base font-medium leading-snug soal-content"
+                                    x-data="{}" x-init="renderMathInElement($el, {
+                                        delimiters: [
+                                            { left: '$$', right: '$$', display: true },
+                                            { left: '$', right: '$', display: false },
+                                            { left: '\\(', right: '\\)', display: false },
+                                            { left: '\\[', right: '\\]', display: true }
+                                        ],
+                                        throwOnError: false
+                                    })">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
@@ -136,7 +145,16 @@
                                                 'prose max-w-none text-[13px] soal-content',
                                                 'font-semibold text-emerald-900' => $opt->is_correct,
                                                 'text-gray-600' => !$opt->is_correct,
-                                            ])>
+                                            ]) x-data="{}"
+                                                x-init="renderMathInElement($el, {
+                                                    delimiters: [
+                                                        { left: '$$', right: '$$', display: true },
+                                                        { left: '$', right: '$', display: false },
+                                                        { left: '\\(', right: '\\)', display: false },
+                                                        { left: '\\[', right: '\\]', display: true }
+                                                    ],
+                                                    throwOnError: false
+                                                })">
                                                 {!! $opt->text !!}
                                             </div>
                                         </div>
@@ -212,7 +230,16 @@
                         <div class="p-4 pt-10">
                             {{-- PERTANYAAN --}}
                             <div class="prose max-w-none mt-6">
-                                <div class="text-gray-800 text-base font-medium leading-snug soal-content">
+                                <div class="text-gray-800 text-base font-medium leading-snug soal-content"
+                                    x-data="{}" x-init="renderMathInElement($el, {
+                                        delimiters: [
+                                            { left: '$$', right: '$$', display: true },
+                                            { left: '$', right: '$', display: false },
+                                            { left: '\\(', right: '\\)', display: false },
+                                            { left: '\\[', right: '\\]', display: true }
+                                        ],
+                                        throwOnError: false
+                                    })">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>
@@ -287,7 +314,16 @@ ESSAY
                         <div class="p-4 pt-10">
                             {{-- PERTANYAAN --}}
                             <div class="prose max-w-none mt-6">
-                                <div class="text-gray-800 text-base font-medium leading-snug soal-content">
+                                <div class="text-gray-800 text-base font-medium leading-snug soal-content"
+                                    x-data="{}" x-init="renderMathInElement($el, {
+                                        delimiters: [
+                                            { left: '$$', right: '$$', display: true },
+                                            { left: '$', right: '$', display: false },
+                                            { left: '\\(', right: '\\)', display: false },
+                                            { left: '\\[', right: '\\]', display: true }
+                                        ],
+                                        throwOnError: false
+                                    })">
                                     {!! $q->question_text !!}
                                 </div>
                             </div>

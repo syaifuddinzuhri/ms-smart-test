@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class QuestionPgWordImport
+class QuestionPgWordImport2
 {
     protected $subjectId;
     protected $categoryId;
@@ -42,148 +42,15 @@ class QuestionPgWordImport
         }
     }
 
-    /**
-     * Pendeteksian Jalur Pandoc yang Sangat Kuat (Multi-OS)
-     */
-    private function getPandocPath()
-    {
-        // 1. Cek Windows
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $winPaths = [
-                'pandoc.exe',
-                'C:\Program Files\Pandoc\pandoc.exe',
-                'C:\Program Files (x86)\Pandoc\pandoc.exe'
-            ];
-            foreach ($winPaths as $path) {
-                $check = (str_contains($path, ':')) ? file_exists($path) : shell_exec("where pandoc");
-                if ($check)
-                    return str_contains($path, ' ') ? '"' . $path . '"' : $path;
-            }
-        }
-
-        // 2. Cek macOS (Darwin) & Linux
-        $unixPaths = [
-            '/usr/local/bin/pandoc',   // Intel Mac / Linux
-            '/opt/homebrew/bin/pandoc', // Apple Silicon (M1/M2/M3)
-            '/usr/bin/pandoc',          // Ubuntu/Debian Standard
-            '/bin/pandoc'
-        ];
-
-        foreach ($unixPaths as $path) {
-            if (file_exists($path) && is_executable($path)) {
-                return $path;
-            }
-        }
-
-        // 3. Fallback: Cek via 'which' di Unix
-        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-            $path = trim(shell_exec('which pandoc'));
-            if (!empty($path))
-                return $path;
-        }
-
-        return 'pandoc'; // Berharap ada di system PATH
-    }
-
-    public function convertDocxToMarkdown($filePath)
-    {
-        if (!file_exists($filePath)) {
-            throw new Exception("File sumber Docx tidak ditemukan.");
-        }
-
-        $pandoc = $this->getPandocPath();
-        $tempFile = storage_path('app/temp_' . Str::random(10) . '.md');
-
-        // Menambahkan 2>&1 untuk menangkap pesan error dari sistem operasi
-        $command = sprintf(
-            '%s %s -f docx -t gfm+pipe_tables --columns=1000 -o %s 2>&1',
-            $pandoc,
-            escapeshellarg($filePath),
-            escapeshellarg($tempFile)
-        );
-
-        exec($command, $output, $returnVar);
-
-        if ($returnVar !== 0) {
-            $errorMsg = implode(" ", $output);
-            throw new Exception("Pandoc Error ({$returnVar}): {$errorMsg}. Path: {$pandoc}");
-        }
-
-        if (!file_exists($tempFile)) {
-            throw new Exception("Gagal membuat file temporary markdown.");
-        }
-
-        $content = file_get_contents($tempFile);
-        @unlink($tempFile); // Gunakan @ untuk suppress error jika file terkunci
-
-        return $content;
-    }
-
-    private function parseMarkdownTable($markdown)
-    {
-        $tableData = [];
-
-        // Jika Pandoc menghasilkan HTML (seperti contoh json_encode Anda)
-        if (str_contains($markdown, '<table') && str_contains($markdown, '<tr')) {
-            preg_match_all('/<tr>(.*?)<\/tr>/s', $markdown, $rows);
-
-            foreach ($rows[1] as $rowHtml) {
-                // Ambil konten di dalam <td> atau <th>
-                preg_match_all('/<t[ddh][^>]*>(.*?)<\/t[ddh]>/s', $rowHtml, $cols);
-
-                $cleanCols = array_map(function ($col) {
-                    // Bersihkan tag HTML di dalam sel tapi biarkan rumus mathjax jika ada
-                    $col = preg_replace('/<p[^>]*>/', '', $col);
-                    $col = str_replace('</p>', "\n", $col);
-                    return trim(strip_tags($col, '<span><div>'));
-                }, $cols[1]);
-
-                if (!empty($cleanCols)) {
-                    $tableData[] = $cleanCols;
-                }
-            }
-        }
-        // Jika Pandoc menghasilkan format Pipe standard (|)
-        else {
-            $lines = explode("\n", str_replace("\r", "", $markdown));
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if (str_contains($line, '|')) {
-                    $columns = array_map('trim', explode('|', trim($line, '|')));
-                    if (isset($columns[0]) && preg_match('/^[:\s-]*$/', $columns[0]))
-                        continue;
-                    if (count($columns) >= 3)
-                        $tableData[] = $columns;
-                }
-            }
-        }
-
-        return $tableData;
-    }
-
-    private function cleanLatex($text)
-    {
-        // Ubah \( ... \) menjadi $ ... $ dan \[ ... \] menjadi $$ ... $$
-        $text = preg_replace('/\\\\\((.*?)\\\\\)/s', '$$1$', $text);
-        $text = preg_replace('/\\\\\[(.*?)\\\\\d*\]/s', '$$$$1$$', $text);
-        return $text;
-    }
-
     public function import($filePath)
     {
-        // STRATEGI BARU:
-        // 1. Kita ambil data teks dari Pandoc (untuk mendapatkan LaTeX)
-        // 2. Kita tetap pakai PHPWord untuk mendeteksi struktur tabel jika perlu,
-        // TAPI karena Pandoc sudah menghasilkan tabel Markdown, kita bisa parsing langsung dari Markdown.
+        $phpWord = IOFactory::load($filePath);
+        $table = $this->findTable($phpWord);
 
-        $markdownContent = $this->convertDocxToMarkdown($filePath);
+        if (!$table)
+            throw new Exception("Tabel data tidak ditemukan.");
 
-        // Parsing tabel Markdown ke Array
-        $rows = $this->parseMarkdownTable($markdownContent);
-
-        if (empty($rows))
-            throw new Exception("Tabel data tidak ditemukan atau format salah.");
-
+        $rows = $table->getRows();
         $dataRows = array_slice($rows, 1);
         $chunks = array_chunk($dataRows, 5);
 
@@ -195,8 +62,9 @@ class QuestionPgWordImport
             $visualRow = ($index * 5) + 2;
             $nomorSoal = $index + 1;
 
-            // Kolom 1 di Markdown biasanya Soal
-            $questionText = trim($chunk[0][1] ?? '');
+            $firstRowCells = $chunk[0]->getCells();
+            $questionText = $this->getCellValue($firstRowCells[1]);
+
             if (empty($questionText))
                 continue;
 
@@ -204,8 +72,9 @@ class QuestionPgWordImport
             $correctCount = 0;
 
             foreach ($chunk as $row) {
-                $optionText = trim($row[2] ?? ''); // Kolom Opsi
-                $isCorrect = trim($row[3] ?? '') === '1'; // Kolom Kunci
+                $cells = $row->getCells();
+                $optionText = $this->getCellValue($cells[2] ?? null);
+                $isCorrect = trim($this->getCellValue($cells[3] ?? null)) === '1';
 
                 if (!empty($optionText)) {
                     $optionsData[] = ['text' => $optionText, 'is_correct' => $isCorrect];
@@ -234,7 +103,7 @@ class QuestionPgWordImport
             $preparedData[] = [
                 'visual_row' => $visualRow,
                 'no' => $nomorSoal,
-                'text' => $this->cleanLatex($questionText),
+                'text' => $questionText,
                 'options' => $optionsData,
                 'correct_count' => $correctCount,
                 'attachment' => $foundFile

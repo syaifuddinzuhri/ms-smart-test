@@ -16,11 +16,7 @@ Route::get('/login', function () {
 })->name('login');
 
 
-Route::get('/test-auth', function() {
-    return [
-        'is_logged_in' => auth()->check(),
-        'user_id' => auth()->id(),
-        'session_id' => session()->getId(),
-        'user_data' => auth()->user(),
-    ];
-})->middleware('web');
+Route::get('/test-pandoc', function () {
+    $output = shell_exec('/opt/homebrew/bin/pandoc -v');
+    return "<pre>$output</pre>";
+});

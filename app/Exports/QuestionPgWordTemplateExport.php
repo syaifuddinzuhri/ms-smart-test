@@ -61,7 +61,7 @@ class QuestionPgWordTemplateExport
 
         // 4. Download File
         $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-        $fileName = 'template_soal_pilihan_ganda.docx';
+        $fileName = 'template_soal_pilihan_ganda_' . now()->format('Ymd_His') . '.docx';
         $tempFile = tempnam(sys_get_temp_dir(), $fileName);
         $objWriter->save($tempFile);
 

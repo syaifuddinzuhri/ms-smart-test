@@ -165,7 +165,7 @@ class ImportQuestion extends Page
                     }
 
                     return match ($data['template_type']) {
-                        'pg' => Excel::download(new QuestionPgTemplateExport, 'template_soal_pilihan_ganda.xlsx'),
+                        'pg' => Excel::download(new QuestionPgTemplateExport, 'template_soal_pilihan_ganda_' . now()->format('Ymd_His') . '.xlsx'),
                         default => Notification::make()->title('Template belum tersedia')->danger()->send(),
                     };
                 }),
