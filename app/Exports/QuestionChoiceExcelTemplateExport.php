@@ -17,7 +17,7 @@ class QuestionChoiceExcelTemplateExport implements FromArray, WithHeadings, With
     public function headings(): array
     {
         return [
-            ['PETUNJUK PENGISIAN SOAL PILIHAN GANDA:'],
+            ['PETUNJUK PENGISIAN SOAL PILIHAN GANDA'],
             ['1. Kolom NO diisi dengan nomor urut soal (sudah tersedia 1-50).'],
             ['2. Tulis teks SOAL sejajar dengan nomor soal.'],
             ['3. Kolom JAWABAN diisi dengan opsi (5 baris per soal).'],

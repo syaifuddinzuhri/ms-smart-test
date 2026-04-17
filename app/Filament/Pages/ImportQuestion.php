@@ -6,9 +6,11 @@ use App\Enums\QuestionGroupType;
 use App\Exports\QuestionChoiceExcelTemplateExport;
 use App\Exports\QuestionChoiceWordTemplateExport;
 use App\Exports\QuestionTrueFalseExcelTemplateExport;
+use App\Exports\QuestionTrueFalseWordTemplateExport;
 use App\Imports\QuestionChoiceExcelImport;
 use App\Imports\QuestionChoiceWordImport;
 use App\Imports\QuestionTrueFalseExcelImport;
+use App\Imports\QuestionTrueFalseWordImport;
 use App\Models\QuestionCategory;
 use App\Models\Subject;
 use Exception;
@@ -94,7 +96,7 @@ class ImportQuestion extends Page
                                 ->validationMessages([
                                     'accepted_file_types' => 'Format file harus berupa .xlsx, .docx, atau .zip.',
                                     'extensions' => 'Format file harus berupa .xlsx, .docx, atau .zip.',
-                                    'max' => 'Ukuran file terlalu besar. Maksimal 10MB.',
+                                    'max' => 'Ukuran file terlalu besar. Maksimal 20MB.',
                                 ])
                                 ->extraAttributes(['class' => 'h-full'])
                                 ->helperText(new HtmlString('
@@ -146,6 +148,7 @@ class ImportQuestion extends Page
                     if ($data['format'] === 'word') {
                         return match ($data['template_type']) {
                             'pg' => QuestionChoiceWordTemplateExport::export(),
+                            'tf' => QuestionTrueFalseWordTemplateExport::export(),
                             default => Notification::make()->title('Template belum tersedia')->danger()->send(),
                         };
                     }
@@ -215,7 +218,7 @@ class ImportQuestion extends Page
                     'excel' => QuestionChoiceExcelImport::class,
                 ],
                 'tf' => [
-                    'docx' => QuestionTrueFalseExcelImport::class,
+                    'docx' => QuestionTrueFalseWordImport::class,
                     'excel' => QuestionTrueFalseExcelImport::class,
                 ],
             ];

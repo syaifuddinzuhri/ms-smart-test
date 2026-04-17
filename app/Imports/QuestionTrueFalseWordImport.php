@@ -8,7 +8,7 @@ use Exception;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class QuestionChoiceWordImport extends BaseQuestionWordImport
+class QuestionTrueFalseWordImport extends BaseQuestionWordImport
 {
     public function import($filePath)
     {
@@ -19,14 +19,13 @@ class QuestionChoiceWordImport extends BaseQuestionWordImport
         if (empty($rows))
             throw new Exception("Tabel data tidak ditemukan atau format salah.");
 
-        $chunks = array_chunk(array_slice($rows, 1), 5);
+        $chunks = array_chunk(array_slice($rows, 1), 2);
 
-        $maxOptionsFound = 0;
         $preparedData = [];
         $isSequenceBroken = false;
 
         foreach ($chunks as $index => $chunk) {
-            $visualRow = ($index * 5) + 2;
+            $visualRow = ($index * 2) + 2;
             $nomorSoal = $index + 1;
 
             $questionText = trim($chunk[0][1] ?? '');
@@ -58,13 +57,13 @@ class QuestionChoiceWordImport extends BaseQuestionWordImport
                 }
             }
 
-            $maxOptionsFound = max($maxOptionsFound, count($optionsData));
-
             $foundFile = $this->checkAttachment($nomorSoal);
 
             $error = null;
-            if ($correctCount === 0) {
-                $error = "Belum ada kunci jawaban (angka 1).";
+            if ($correctCount !== 1) {
+                $error = "Kunci jawaban harus tepat satu (angka 1).";
+            } elseif (count($optionsData) < 2) {
+                $error = "Opsi Benar/Salah tidak lengkap.";
             } elseif ($foundFile && $foundFile['size'] > (3 * 1024 * 1024)) {
                 $error = "File {$foundFile['name']} melebihi batas maksimal 3MB.";
             }
@@ -83,7 +82,7 @@ class QuestionChoiceWordImport extends BaseQuestionWordImport
             ];
         }
 
-        $requiredOptions = max(3, min(5, $maxOptionsFound));
+        $requiredOptions = 2;
         foreach ($preparedData as $key => $item) {
             if (count($item['options']) !== $requiredOptions) {
                 $this->addError($item['visual_row'], $item['no'], $item['text'], "Jumlah opsi wajib {$requiredOptions}.");
@@ -99,27 +98,24 @@ class QuestionChoiceWordImport extends BaseQuestionWordImport
 
         foreach ($preparedData as $item) {
             try {
-                $type = ($item['correct_count'] > 1)
-                    ? QuestionType::MULTIPLE_CHOICE->value
-                    : QuestionType::SINGLE_CHOICE->value;
-
                 $question = Question::create([
                     'subject_id' => $this->subjectId,
                     'question_category_id' => $this->categoryId,
                     'question_text' => $item['text'],
-                    'question_type' => $type,
+                    'question_type' => QuestionType::TRUE_FALSE->value,
                 ]);
 
                 $finalText = $this->processHtmlImages($item['text'], $question->id);
                 $question->update(['question_text' => $finalText]);
 
+                $labels = ['A', 'B'];
                 foreach ($item['options'] as $idx => $opt) {
                     $finalOptText = $this->processHtmlImages($opt['text'], $question->id);
                     $question->options()->create([
                         'question_id' => $question->id,
                         'text' => $finalOptText,
                         'is_correct' => $opt['is_correct'],
-                        'label' => range('A', 'E')[$idx],
+                        'label' => $labels[$idx] ?? 'A',
                         'order' => $idx,
                     ]);
                 }

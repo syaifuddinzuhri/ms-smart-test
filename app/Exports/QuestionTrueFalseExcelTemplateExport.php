@@ -17,7 +17,7 @@ class QuestionTrueFalseExcelTemplateExport implements FromArray, WithHeadings, W
     public function headings(): array
     {
         return [
-            ['PETUNJUK PENGISIAN SOAL TRUE/FALSE (BENAR/SALAH):'],
+            ['PETUNJUK PENGISIAN SOAL BENAR/SALAH'],
             ['1. Kolom NO diisi dengan nomor urut soal.'],
             ['2. Tulis teks SOAL pada baris pertama di setiap blok nomor.'],
             ['3. Kolom JAWABAN sudah otomatis terisi "Benar" dan "Salah".'],

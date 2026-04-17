@@ -131,7 +131,7 @@ class QuestionChoiceExcelImport implements ToCollection
         }
 
         if (empty($preparedData)) {
-            throw new Exception("Gagal import data tidak terbaca");
+            throw new Exception("Gagal import, data tidak ditemukan dalam file Excel.");
         }
 
         // --- STAGE 2: PROSES INSERT (ATOMIC) ---

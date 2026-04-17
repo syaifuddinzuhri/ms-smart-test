@@ -42,10 +42,10 @@ enum QuestionGroupType: string
     public function getTemplateKeyword(): string
     {
         return match ($this) {
-            self::PG => 'PETUNJUK PENGISIAN SOAL PILIHAN GANDA:',
-            self::TF => 'PETUNJUK PENGISIAN SOAL TRUE/FALSE (BENAR/SALAH):',
-            self::SHORT => 'PETUNJUK PENGISIAN SOAL JAWABAN SINGKAT:',
-            self::ESSAY => 'PETUNJUK PENGISIAN SOAL ESSAY:',
+            self::PG => 'PETUNJUK PENGISIAN SOAL PILIHAN GANDA',
+            self::TF => 'PETUNJUK PENGISIAN SOAL BENAR/SALAH',
+            self::SHORT => 'PETUNJUK PENGISIAN SOAL JAWABAN SINGKAT',
+            self::ESSAY => 'PETUNJUK PENGISIAN SOAL ESSAY',
         };
     }
 }
