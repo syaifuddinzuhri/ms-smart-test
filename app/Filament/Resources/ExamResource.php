@@ -316,6 +316,7 @@ class ExamResource extends Resource
                     Tables\Actions\Action::make('manageTokens')
                         ->label('Kelola Token')
                         ->icon('heroicon-o-key')
+                        ->visible(fn(Exam $record) => $record->status !== ExamStatus::CLOSED)
                         ->color('gray')
                         ->url(fn(Exam $record): string => static::getUrl('manage-tokens', ['record' => $record])),
 
@@ -351,8 +352,8 @@ class ExamResource extends Resource
 
                             $allowedTransitions = match ($oldStatus) {
                                 ExamStatus::DRAFT => [ExamStatus::ACTIVE, ExamStatus::INACTIVE, ExamStatus::CLOSED],
-                                ExamStatus::ACTIVE => [ExamStatus::INACTIVE, ExamStatus::CLOSED],
-                                ExamStatus::INACTIVE => [ExamStatus::ACTIVE, ExamStatus::CLOSED],
+                                ExamStatus::ACTIVE => [ExamStatus::INACTIVE, ExamStatus::CLOSED, ExamStatus::DRAFT],
+                                ExamStatus::INACTIVE => [ExamStatus::ACTIVE, ExamStatus::CLOSED, ExamStatus::DRAFT],
                                 ExamStatus::CLOSED => [],
                                 default => [],
                             };
@@ -365,6 +366,19 @@ class ExamResource extends Resource
                                     ->send();
 
                                 return;
+                            }
+
+                            if ($newStatus === ExamStatus::DRAFT) {
+                                $hasParticipants = $record->sessions()->exists();
+
+                                if ($hasParticipants) {
+                                    Notification::make()
+                                        ->title('Gagal Kembali ke Draft')
+                                        ->body('Ujian tidak bisa dikembalikan ke Draft karena sudah ada siswa yang mengakses/mengerjakan.')
+                                        ->warning()
+                                        ->send();
+                                    return;
+                                }
                             }
 
                             $record->update(['status' => $newStatus]);
