@@ -27,7 +27,7 @@ class User extends Authenticatable implements FilamentUser
         $role = $this->role->value;
 
         if ($panel->getId() === PanelType::ADMIN->value) {
-            return in_array($role, [UserRole::ADMIN->value, UserRole::TEACHER->value]);
+            return $role !== UserRole::STUDENT->value;
         }
 
         if ($panel->getId() === PanelType::STUDENT->value) {

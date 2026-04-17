@@ -12,6 +12,7 @@ enum UserRole: string
     case ADMIN = 'admin';
     case TEACHER = 'teacher';
     case STUDENT = 'student';
+    case SUPERVISOR = 'supervisor';
 
     public function label(): string
     {
@@ -19,6 +20,7 @@ enum UserRole: string
             self::ADMIN => 'Administrator',
             self::TEACHER => 'Guru',
             self::STUDENT => 'Siswa',
+            self::SUPERVISOR => 'Pengawas',
         };
     }
 }

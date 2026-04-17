@@ -51,7 +51,7 @@ class Login extends BaseLogin
 
         if ($panelId === PanelType::STUDENT->value && $role !== UserRole::STUDENT->value)
             $this->throwFailureValidationException();
-        if ($panelId === PanelType::ADMIN->value && !in_array($role, [UserRole::ADMIN->value, UserRole::TEACHER->value]))
+        if ($panelId === PanelType::ADMIN->value && $role === UserRole::STUDENT->value)
             $this->throwFailureValidationException();
 
         session()->invalidate();
