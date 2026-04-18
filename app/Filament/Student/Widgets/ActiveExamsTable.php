@@ -30,9 +30,7 @@ class ActiveExamsTable extends BaseWidget
                     ->whereHas('classrooms', function ($query) use ($classroomId) {
                         $query->where('classroom_id', $classroomId);
                     })
-                    ->whereHas('examQuestions', function ($query) {
-                        $query->has('question'); 
-                    })
+                    ->whereHas('examQuestions')
                     ->whereIn('status', [ExamStatus::ACTIVE->value, ExamStatus::INACTIVE->value])
                     ->with([
                         'sessions' => function ($query) use ($user) {

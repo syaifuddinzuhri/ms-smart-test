@@ -365,6 +365,18 @@ class ExamResource extends Resource
                                 return;
                             }
 
+                            if ($newStatus === ExamStatus::ACTIVE) {
+                                if (!$record->examQuestions()->exists()) {
+                                    Notification::make()
+                                        ->title('Gagal Mengaktifkan Ujian')
+                                        ->body('Ujian ini belum memiliki soal. Harap isi soal minimal 1 sebelum diaktifkan.')
+                                        ->danger()
+                                        ->send();
+
+                                    return;
+                                }
+                            }
+
                             if ($newStatus === ExamStatus::DRAFT) {
                                 $hasParticipants = $record->sessions()->exists();
 
