@@ -3,46 +3,48 @@
 namespace App\Filament\Student\Pages;
 
 use App\Enums\ExamSessionStatus;
+use App\Enums\QuestionType;
+use App\Filament\Student\Pages\Traits\HasExamNavigation;
+use App\Filament\Student\Pages\Traits\HasExamQuestions;
+use App\Filament\Student\Pages\Traits\HasExamStorage;
 use App\Models\Exam;
+use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Placeholder;
 use Filament\Pages\Page;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\Alignment;
+use Illuminate\Support\HtmlString;
 
 class StartTest extends Page implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
+    use HasExamQuestions;
+    use HasExamNavigation;
+    use HasExamStorage;
 
     protected static bool $shouldRegisterNavigation = false;
-
     protected static ?string $title = 'Simulasi Ujian Online';
-
     protected static string $view = 'filament.student.pages.start-test';
 
-    public $activeTab = 'pg';
-    public $currentStep = 1;
-    public $totalPG = 10;
-    public $totalEssay = 2;
-
     public ?array $data = [];
-
-    public $doubtfulQuestions = [];
-    public $durationInSeconds = 0;
-
+    public $activeTab = 'pg', $currentStep = 1;
+    public int $totalPG = 0, $totalEssay = 0;
+    public $doubtfulQuestions = [], $durationInSeconds = 0;
     public bool $isLocked = false;
-
     public ?string $token = null;
-
     public ?Exam $exam = null;
     public ?ExamSession $session = null;
 
@@ -54,37 +56,37 @@ class StartTest extends Page implements HasForms, HasActions
     public function mount()
     {
         $this->token = request()->query('token');
-
-        if (!$this->token) {
-            return redirect()->to('/student');
-        }
-
         $tokenHash = hash('sha256', $this->token);
+        $this->session = ExamSession::where('token', $tokenHash)->first();
 
-        $this->session = ExamSession::where('token', $tokenHash)
-            ->first();
-
-        if (!$this->session) {
+        if (!$this->session || !$this->exam = Exam::find($this->session->exam_id)) {
             return redirect()->to('/student');
         }
 
-        $this->exam = Exam::find($this->session->exam_id);
-
-        if (!$this->exam) {
-            return redirect()->to('/student');
-        }
-
-        if ($this->session->status === ExamSessionStatus::PAUSE) {
+        if($this->session->status === ExamSessionStatus::PAUSE){
             $this->isLocked = true;
         }
 
-        if ($this->session) {
-            $this->durationInSeconds = $this->session->remaining_duration;
-        } else {
-            $this->durationInSeconds = $this->exam->duration * 60;
-        }
+        $this->totalPG = $this->pgQuestions->count();
+        $this->totalEssay = $this->essayQuestions->count();
+        if ($this->totalPG === 0 && $this->totalEssay > 0)
+            $this->activeTab = 'essay';
 
-        $this->form->fill();
+        $this->durationInSeconds = $this->session->remaining_duration ?? ($this->exam->duration * 60);
+
+        // Load Initial Data
+        $savedAnswers = ExamAnswer::where('exam_session_id', $this->session->id)->with('selectedOptions')->get();
+        foreach ($savedAnswers as $saved) {
+            if ($saved->answer_text) {
+                $this->data["q{$saved->question_id}"] = $saved->answer_text;
+            } else {
+                $opts = $saved->selectedOptions->pluck('id')->toArray();
+                $this->data["q{$saved->question_id}"] = count($opts) > 1 ? $opts : ($opts[0] ?? null);
+            }
+            if ($saved->is_doubtful)
+                $this->doubtfulQuestions[] = $saved->question_id;
+        }
+        $this->form->fill($this->data);
     }
 
     public function lockExam(): void
@@ -96,7 +98,6 @@ class StartTest extends Page implements HasForms, HasActions
         ];
         $this->session->update($updateData);
         $this->isLocked = true;
-        $this->dispatch('exit-fullscreen');
     }
 
     public function updateRemainingTime($seconds): void
@@ -118,49 +119,94 @@ class StartTest extends Page implements HasForms, HasActions
             ->send();
     }
 
-    public function backToDashboard()
+    public function getQuestionStatus($questionId)
     {
-        $updateData = [
-            'token' => null,
-            'system_id' => null
-        ];
-        $this->session->update($updateData);
-        $this->dispatch('prepare-navigation');
-        return redirect()->to('/student/input-token?exam_id=' . $this->exam->id);
-    }
+        $fieldName = "q{$questionId}";
+        $answer = $this->data[$fieldName] ?? null;
 
-    public function toggleDoubt($key)
-    {
-        if (in_array($key, $this->doubtfulQuestions)) {
-            $this->doubtfulQuestions = array_diff($this->doubtfulQuestions, [$key]);
+        $isAnswered = false;
+        if (is_array($answer)) {
+            $isAnswered = count($answer) > 0;
         } else {
-            $this->doubtfulQuestions[] = $key;
+            $isAnswered = !empty($answer) && trim(strip_tags($answer)) !== '';
         }
-    }
 
-    public function goToStep($tab, $step)
-    {
-        $this->activeTab = $tab;
-        $this->currentStep = $step;
-    }
-
-    // Fungsi pembantu untuk cek status di Blade
-    public function getQuestionStatus($key)
-    {
-        $isAnswered = !empty($this->data[$key]);
-        $isDoubtful = in_array($key, $this->doubtfulQuestions);
-
-        if ($isDoubtful)
+        if (in_array($questionId, $this->doubtfulQuestions))
             return 'doubtful';
         if ($isAnswered)
             return 'answered';
         return 'unanswered';
     }
 
+    public function isAllAnswered(): bool
+    {
+        $totalRequired = $this->totalPG + $this->totalEssay;
+        $answeredCount = 0;
+
+        foreach ($this->data as $key => $value) {
+            if (str_starts_with($key, 'q')) {
+                if (is_array($value) ? count($value) > 0 : !empty(trim(strip_tags($value)))) {
+                    $answeredCount++;
+                }
+            }
+        }
+
+        return $answeredCount >= $totalRequired;
+    }
+
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Group::make([
+                    ...$this->pgQuestions->map(fn($q, $i) => $this->buildQuestionField($q, $i + 1, 'pg')),
+                ]),
+                Group::make([
+                    ...$this->essayQuestions->map(fn($q, $i) => $this->buildQuestionField($q, $i + 1, 'essay')),
+                ]),
+            ])
+            ->statePath('data');
+    }
+
+    protected function buildQuestionField($q, $step, $tab)
+    {
+        $name = "q{$q->id}";
+        $isEssay = in_array($tab, ['essay']);
+
+        if ($tab === 'pg') {
+            $input = ($q->question_type === QuestionType::MULTIPLE_CHOICE->value) ? CheckboxList::make($name) : Radio::make($name);
+            $input->options($q->options->mapWithKeys(function ($opt) {
+                return [
+                    $opt->id => new HtmlString(
+                        "<div class='prose prose-sm max-w-none inline-block text-gray-700 soal-content'>{$opt->text}</div>"
+                    )
+                ];
+            })->toArray());
+        } else {
+            $input = ($q->question_type === QuestionType::SHORT_ANSWER->value) ? TextInput::make($name) : RichEditor::make($name)
+                ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList']);
+        }
+
+        return Group::make([
+            Placeholder::make("text_{$name}")
+                ->label('')
+                ->content(
+                    new HtmlString(
+                        "<div class='prose max-w-none text-gray-800 soal-content'>{$q->question_text}</div>"
+                    )
+                ),
+            $input->label($isEssay ? 'Jawaban Anda:' : 'Pilih jawaban:')
+                ->extraAttributes(['class' => 'ms-7 mt-4']),
+        ])->visible(fn() => $this->activeTab === $tab && $this->currentStep === $step)
+            ->key("group_{$tab}_{$q->id}");
+    }
+
+
     public function submitAction(): Action
     {
         return Action::make('submit')
-            ->label('Submit & Kirim Ujian')
+            ->label('Hentikan & Kirim Hasil')
             ->icon('heroicon-m-paper-airplane')
             ->color('info')
             ->size('md')
@@ -169,125 +215,62 @@ class StartTest extends Page implements HasForms, HasActions
             ])
             ->requiresConfirmation()
             ->modalHeading('Kirim Jawaban Ujian?')
-            ->modalDescription('Pastikan semua jawaban sudah benar. Setelah dikirim, Anda tidak dapat mengubah jawaban lagi.')
+            ->modalDescription(fn() => new HtmlString("
+            <div class='space-y-4'>
+                <p>Pastikan semua jawaban sudah benar. Setelah dikirim, Anda tidak dapat mengubah jawaban lagi.</p>
+
+                <div class='bg-gray-50 p-4 rounded-lg border border-gray-200'>
+                    <p class='text-sm font-bold text-gray-700 mb-2'>Rangkuman Pengerjaan:</p>
+                    <div class='grid grid-cols-1 gap-2 text-sm'>
+                        <div class='flex justify-between'>
+                            <span class='text-gray-600'>Total Soal:</span>
+                            <span class='font-semibold'>" . ($this->totalPG + $this->totalEssay) . "</span>
+                        </div>
+                        <div class='flex justify-between text-green-600'>
+                            <span>Sudah Dijawab:</span>
+                            <span class='font-semibold'>{$this->getSummaryCounts()['answered']}</span>
+                        </div>
+                        <div class='flex justify-between text-orange-600'>
+                            <span>Ragu-Ragu:</span>
+                            <span class='font-semibold'>{$this->getSummaryCounts()['doubtful']}</span>
+                        </div>
+                        <div class='flex justify-between text-red-600'>
+                            <span>Belum Dijawab:</span>
+                            <span class='font-semibold'>{$this->getSummaryCounts()['unanswered']}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        "))
+            ->form([
+                Checkbox::make('confirm_submit')
+                    ->label('Saya menyatakan bahwa saya telah memeriksa kembali semua jawaban dan setuju untuk mengakhiri ujian ini.')
+                    ->required(),
+            ])
             ->modalSubmitActionLabel('Ya, Kirim Sekarang')
             ->modalCancelActionLabel('Batal')
             ->modalIcon('heroicon-o-check-circle')
             ->modalAlignment(Alignment::Center)
-            ->action(fn() => $this->submit());
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                // KELOMPOK SOAL PILIHAN GANDA
-                \Filament\Forms\Components\Group::make([
-                    Radio::make('q1')
-                        ->label('1. Apa benar pernyataan ini?')
-                        ->options(['a' => 'Benar', 'b' => 'Salah'])
-                        ->live()
-                        ->visible(fn() => $this->activeTab === 'pg' && $this->currentStep === 1),
-
-                    Radio::make('q2')
-                        ->label('2. Laravel menggunakan bahasa pemrograman apa?')
-                        ->options(['a' => 'A. PHP', 'b' => 'B. Javascript', 'c' => 'C. Ruby'])
-                        ->live()
-                        ->visible(fn() => $this->activeTab === 'pg' && $this->currentStep === 2),
-
-                    CheckboxList::make('q3')
-                        ->label('3. Pilih framework CSS (Bisa lebih dari satu)')
-                        ->options(['a' => 'A. Tailwind', 'b' => 'B. Bootstrap', 'c' => 'C. Laravel'])
-                        ->live()
-                        ->visible(fn() => $this->activeTab === 'pg' && $this->currentStep === 3),
-                ]),
-
-                // KELOMPOK SOAL ESSAY
-                \Filament\Forms\Components\Group::make([
-                    TextInput::make('q4')
-                        ->label('1. Siapa penemu World Wide Web?')
-                        ->live()
-                        ->visible(fn() => $this->activeTab === 'essay' && $this->currentStep === 1),
-
-                    RichEditor::make('q5')
-                        ->label('2. Jelaskan perbedaan Frontend dan Backend!')
-                        ->live()
-                        ->visible(fn() => $this->activeTab === 'essay' && $this->currentStep === 2),
-                ]),
-            ])
-            ->statePath('data');
-    }
-
-    // Navigasi Next
-    public function next()
-    {
-        if ($this->activeTab === 'pg') {
-            if ($this->currentStep < $this->totalPG) {
-                $this->currentStep++;
-            } else {
-                // Jika PG sudah habis, pindah ke Essay
-                $this->activeTab = 'essay';
-                $this->currentStep = 1;
-            }
-        } else {
-            if ($this->currentStep < $this->totalEssay) {
-                $this->currentStep++;
-            }
-        }
-    }
-
-    // Navigasi Prev
-    public function previous()
-    {
-        if ($this->activeTab === 'essay') {
-            if ($this->currentStep > 1) {
-                $this->currentStep--;
-            } else {
-                // Kembali ke PG soal terakhir
-                $this->activeTab = 'pg';
-                $this->currentStep = $this->totalPG;
-            }
-        } else {
-            if ($this->currentStep > 1) {
-                $this->currentStep--;
-            }
-        }
-    }
-
-    // Ganti Tab Manual
-    public function setTab($tab)
-    {
-        $this->activeTab = $tab;
-        $this->currentStep = 1;
-    }
-
-    public function isAllAnswered(): bool
-    {
-        $totalSoal = $this->totalPG + $this->totalEssay;
-
-        // Filter data: hapus yang null, string kosong, atau array kosong
-        $answeredData = collect($this->data)->filter(function ($value) {
-            if (is_array($value)) {
-                return count($value) > 0;
-            }
-            return !empty($value);
-        });
-
-        return $answeredData->count() >= $totalSoal;
+            ->action(function (array $data) {
+                $this->submit();
+            });
     }
 
     public function submit()
     {
         $jawaban = $this->form->getState();
 
-        // Simulasi notifikasi sukses
+        $this->session->update([
+            'token' => null,
+            'system_id' => null
+        ]);
+
         Notification::make()
             ->title('Jawaban Berhasil Terkirim')
             ->body('Terima kasih, jawaban ujian Anda telah kami terima.')
             ->success()
             ->send();
 
-        // Redirect kembali ke daftar ujian setelah 2 detik (opsional)
         return redirect()->to('/student');
     }
 }

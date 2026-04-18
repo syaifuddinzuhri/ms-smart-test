@@ -30,6 +30,11 @@ class ExamAnswer extends Model
 
     public function selectedOptions(): BelongsToMany
     {
-        return $this->belongsToMany(QuestionOption::class, 'exam_answer_options', 'exam_answer_id', 'question_option_id');
+        return $this->belongsToMany(
+            QuestionOption::class,
+            'exam_answer_options',
+            'exam_answer_id',
+            'question_option_id'
+        );
     }
 }

@@ -1,16 +1,14 @@
 <x-filament-panels::page>
     <div x-data="{
         isLocked: @entangle('isLocked'),
-        showFullscreenOverlay: true,
+
         lockExam() {
-            if (!this.isLocked) {
+            // Hanya jalankan lock jika:
+            // 1. Belum terkunci
+            // 2. Halaman sudah siap (lewat masa tenggang 2 detik)
+            // 3. Bukan karena proses reload/refresh halaman
+            if (!this.isLocked && window.isPageReady && !window.isReloading) {
                 $wire.call('lockExam');
-            }
-        },
-        handleFullscreenChange() {
-            if (!document.fullscreenElement && !this.isLocked) {
-                // Jika keluar fullscreen, cukup tampilkan overlay, JANGAN lock
-                this.showFullscreenOverlay = true;
             }
         }
     }"
@@ -18,25 +16,25 @@
         const key = $event.key.toLowerCase();
         const isCmdOrCtrl = $event.ctrlKey || $event.metaKey;
 
-        // Pengecualian Reload: F5 (116) atau Ctrl+R / Cmd+R
+        // Izinkan reload
         if (key === 'f5' || (isCmdOrCtrl && key === 'r')) {
+            window.isReloading = true;
             return;
         }
 
-        // BLOKIR AKSES BERBAHAYA
+        // Blokir shortcut curang
         if (
             (isCmdOrCtrl && ['t', 'n', 'u', 'i', 'j', 'p', 'e', 'k'].includes(key)) ||
             (isCmdOrCtrl && $event.shiftKey && ['n', 'i', 'j'].includes(key)) ||
             $event.key === 'F12' ||
-            $event.altKey ||
             ($event.metaKey && key !== 'r')
         ) {
             $event.preventDefault();
             lockExam();
         }
     "
-        @fullscreenchange.window="handleFullscreenChange()" @visibilitychange.window="if (document.hidden) lockExam()"
-        @blur.window="setTimeout(() => { if (!document.hasFocus()) lockExam() }, 250)" class="relative">
+        @visibilitychange.window="if (document.hidden) lockExam()"
+        @blur.window="setTimeout(() => { if (!document.hasFocus()) lockExam() }, 200);" class="relative">
 
         <template x-if="showFullscreenOverlay && !isLocked">
             <div
@@ -88,58 +86,45 @@
         </div>
     </div>
 
+
     @push('scripts')
         <script>
-            let isNavigatingAllowed = false;
+            // Inisialisasi variabel global
+            window.isLockedFromDB = @js($isLocked);
+            window.isPageReady = false;
+            window.isReloading = false;
 
-            window.addEventListener('prepare-navigation', () => {
-                isNavigatingAllowed = true;
-                if (document.fullscreenElement) {
-                    document.exitFullscreen().catch(err => {});
-                }
-                window.onbeforeunload = null;
+            // Berikan jeda agar tidak langsung mengunci saat halaman baru dimuat (refresh)
+            setTimeout(() => {
+                window.isPageReady = true;
+            }, 1000);
+
+            // Tandai jika sedang proses reload (agar tidak terkunci saat refresh)
+            window.addEventListener('beforeunload', () => {
+                window.isReloading = true;
             });
 
-            // Izinkan browser melakukan refresh tanpa interupsi lock
-            window.onbeforeunload = function(e) {
-                if (!@js($isLocked) && !isNavigatingAllowed) {
-                    const msg = "Sesi ujian sedang berjalan.";
-                    e.returnValue = msg;
-                    return msg;
+            // Deteksi tombol reload manual (F5 / Ctrl+R)
+            window.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'f5' || ((e.ctrlKey || e.metaKey) && key === 'r')) {
+                    window.isReloading = true;
+                }
+            });
+
+            // Fungsi helper untuk lock (dipakai oleh auxclick/click manual)
+            window.triggerLock = function() {
+                if (window.isPageReady && !window.isLockedFromDB && !window.isReloading) {
+                    @this.call('lockExam');
                 }
             };
 
-            const triggerFullScreen = () => {
-                const elem = document.documentElement;
-                const rfs = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
-                if (rfs) {
-                    rfs.call(elem).catch(err => console.warn('Fullscreen Error:', err));
-                }
-            };
-
-            // Trigger awal setelah load/refresh
-            const forceStart = () => {
-                if (!@js($isLocked)) triggerFullScreen();
-                ['click', 'touchstart'].forEach(ev => document.removeEventListener(ev, forceStart));
-            };
-            document.addEventListener('click', forceStart);
-            document.addEventListener('touchstart', forceStart);
-
-            // Mencegah Klik Kanan & Tengah
-            document.addEventListener('contextmenu', e => e.preventDefault());
+            // Proteksi klik kanan/tengah/ctrl+klik
             document.addEventListener('auxclick', (e) => {
-                if (e.button === 1) {
-                    e.preventDefault();
-                    @this.call('lockExam');
-                }
+                if (e.button === 1) triggerLock();
             });
-
-            // Cegah Ctrl + Click
             document.addEventListener('click', (e) => {
-                if ((e.ctrlKey || e.metaKey) && !isNavigatingAllowed) {
-                    e.preventDefault();
-                    @this.call('lockExam');
-                }
+                if (e.ctrlKey || e.metaKey) triggerLock();
             });
         </script>
     @endpush

@@ -107,7 +107,7 @@ class InputToken extends Page implements HasForms
             Notification::make()
                 ->title('Token Tidak Valid')
                 ->body($session
-                    ? 'Sesi Anda terdeteksi sudah berjalan. Silahkan masukkan token akses masuk ulang dari pengawas.'
+                    ? 'Token kadaluarsa / Sesi Anda terdeteksi sudah berjalan. Silahkan masukkan token akses masuk ulang dari pengawas.'
                     : 'Token akses salah, kadaluarsa, atau tidak sesuai tipe.')
                 ->danger()
                 ->send();

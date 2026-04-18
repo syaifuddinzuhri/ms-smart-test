@@ -25,109 +25,125 @@
         </div>
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-xl p-2 min-h-[200px] relative shadow-sm">
-        <div class="flex md:flex-row flex-col md:justify-between md:items-center border-b border-gray-100 p-4">
-            <span class="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
-                Soal Nomor {{ $currentStep }}
-                ({{ $activeTab === 'pg' ? 'Pilihan Ganda' : 'Essay' }})
-            </span>
-            <span class="text-xs font-bold text-primary-600 bg-primary-50 py-1 rounded-full">
-                Selesai: {{ count(array_filter($data)) }} / {{ $totalPG + $totalEssay }}
-            </span>
+    <div class="bg-white border border-gray-200 rounded-xl p-2 min-h-[200px] relative shadow-sm overflow-hidden">
+        <div class="absolute top-0 left-0 flex overflow-hidden rounded-br-xl">
+            <div class="bg-green-600 group-hover:bg-green-700 transition-colors text-white px-3 py-1 shadow-sm">
+                <div class="flex items-center gap-1.5 leading-none">
+                    <span class="text-[9px] uppercase tracking-wider font-semibold opacity-80">Soal</span>
+                    <span class="text-sm font-black">{{ $currentStep }}</span>
+                </div>
+            </div>
+            <div class="flex items-center bg-gray-50 border-gray-200 px-2 gap-2">
+                <span class="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
+                    {{ $activeTab === 'pg' ? 'Pilihan Ganda' : 'Essay' }}
+                </span>
+            </div>
+        </div>
+        <div class="absolute top-0 right-0 flex overflow-hidden rounded-br-xl">
+            <div class="flex md:flex-row flex-col md:justify-between md:items-center p-4">
+                <span class="text-xs font-bold text-primary-600 bg-primary-50 py-1 rounded-full">
+                    Selesai: {{ count(array_filter($data)) }} / {{ $totalPG + $totalEssay }}
+                </span>
+            </div>
         </div>
 
-        <div class="px-4 py-2">
+        <div class="px-4 py-2 mt-10 border-t border-gray-100 ">
             {{ $this->form }}
         </div>
     </div>
 
-    <!-- Navigasi & Tombol Ragu-ragu -->
     <div
-        class="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-        <div class="flex flex-wrap md:flex-nowrap gap-2 gap-y-4 w-full justify-center md:justify-start">
+        class="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 mt-8">
 
-            <!-- TOMBOL SEBELUMNYA -->
-            <x-filament::button color="gray" outlined wire:click="previous" icon="heroicon-m-arrow-left"
-                :disabled="$activeTab === 'pg' && $currentStep === 1" class="flex-1 md:flex-none order-2 md:order-1">
-                Sebelumnya
+        <div
+            class="grid gap-2 w-full md:w-auto
+        {{ $this->isAbsoluteFirst ? 'grid-cols-2 justify-center' : 'grid-cols-3' }}">
+            @if (!$this->isAbsoluteFirst)
+                <x-filament::button color="gray" outlined wire:click="previous" icon="heroicon-m-arrow-left"
+                    :disabled="$activeTab === 'pg' && $currentStep === 1" class="w-full">
+                    <span class="hidden md:inline">Sebelumnya</span>
+                </x-filament::button>
+            @endif
+            <x-filament::button tag="button" wire:click="toggleDoubt"
+                color="warning" :outlined="!in_array($this->currentQuestionId, $doubtfulQuestions)" class="w-full">
+                <span class="md:hidden">Ragu</span>
+                <span class="hidden md:inline">Ragu-Ragu</span>
             </x-filament::button>
-
-            <!-- TOMBOL RAGU-RAGU -->
-            @php
-                $currentId = $activeTab === 'pg' ? $currentStep : $currentStep + $totalPG;
-            @endphp
-            <x-filament::button tag="button" wire:click="toggleDoubt('q{{ $currentId }}')" color="warning"
-                :outlined="!in_array('q' . $currentId, $doubtfulQuestions)" class="w-full md:w-auto order-1 md:order-2">
-                Ragu-Ragu
-            </x-filament::button>
-
-            <!-- TOMBOL SELANJUTNYA -->
-            <x-filament::button color="primary" wire:click="next" icon-position="after" icon="heroicon-m-arrow-right"
-                :disabled="$activeTab === 'essay' && $currentStep === $totalEssay" class="flex-1 md:flex-none order-3 md:order-3">
-                Selanjutnya
-            </x-filament::button>
-
+            @if (!$this->isAbsoluteLast)
+                <x-filament::button color="primary" wire:click="next" icon-position="after"
+                    icon="heroicon-m-arrow-right" class="w-full">
+                    <span class="hidden md:inline">Selanjutnya</span>
+                </x-filament::button>
+            @else
+                <x-filament::button color="primary" wire:click="saveAnswer('{{ $this->currentQuestionId }}', true)"
+                    icon="heroicon-m-check-circle" class="w-full">
+                    <span class="inline">Simpan</span>
+                </x-filament::button>
+            @endif
         </div>
 
-        <div class="w-full flex justify-center md:justify-end">
-            {{ $this->submitAction }}
-        </div>
     </div>
 
-    <!-- GRID NOMOR SOAL -->
     <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
             <x-heroicon-m-squares-2x2 class="w-5 h-5 text-gray-400" />
             Navigasi Soal
         </h3>
-
-        <div class="flex flex-wrap gap-3">
-            <!-- Loop Pilihan Ganda -->
-            @for ($i = 1; $i <= $totalPG; $i++)
+        <div class="flex flex-wrap gap-3" wire:key="action-bar-soal-{{ $this->currentQuestionId }}">
+            <!-- Loop Pilihan Ganda (PG) -->
+            @foreach ($this->pgQuestions as $index => $q)
                 @php
-                    $key = "q$i";
-                    $status = $this->getQuestionStatus($key);
-                    $isActive = $activeTab === 'pg' && $currentStep === $i;
+                    $stepNumber = $index + 1;
+                    $status = $this->getQuestionStatus($q->id);
+                    $isActive = $activeTab === 'pg' && $currentStep === $stepNumber;
                 @endphp
-                <button wire:click="goToStep('pg', {{ $i }})" @class([
-                    'w-10 h-10 rounded-lg text-xs font-bold transition-all border-2',
-                    'border-primary-600' => $isActive,
-                    'bg-orange-500 text-white border-orange-500' => $status === 'doubtful',
-                    'bg-primary-500 text-white border-primary-500' =>
-                        $status === 'answered' && !$isActive,
-                    'bg-white text-gray-400 border-gray-200 hover:border-primary-300' =>
-                        $status === 'unanswered' && !$isActive,
-                ])>
-                    {{ $i }}
+                <button wire:key="nav-pg-{{ $q->id }}" wire:click="goToStep('pg', {{ $stepNumber }})"
+                    @class([
+                        'w-10 h-10 rounded-lg text-xs font-bold transition-all border-2 flex items-center justify-center',
+                        'ring-1 ring-gray-400 z-10 scale-110 shadow-md font-extrabold' => $isActive,
+                        'ring-green-500' =>
+                            $isActive && ($status === 'answered' && $status !== 'doubtful'),
+                        'ring-orange-600' => $isActive && $status === 'doubtful',
+                        'bg-orange-500 text-white border-orange-400' => $status === 'doubtful',
+                        'bg-primary-500 text-white border-green-400' =>
+                            $status === 'answered' && $status !== 'doubtful',
+                        'bg-white text-gray-400 border-gray-200' => $status === 'unanswered',
+                        'text-primary-600' => $status === 'unanswered' && $isActive,
+                    ])>
+                    {{-- Label PG harus murni angka, jangan pakai $activeTab --}}
+                    {{ $stepNumber }}
                 </button>
-            @endfor
+            @endforeach
 
-            <!-- Divider -->
-            <div class="w-px h-10 bg-gray-100 mx-1"></div>
+            @if ($totalPG > 0 && $totalEssay > 0)
+                <div class="w-px h-10 bg-gray-200 mx-1" wire:key="divider"></div>
+            @endif
 
             <!-- Loop Essay -->
-            @for ($i = 1; $i <= $totalEssay; $i++)
+            @foreach ($this->essayQuestions as $index => $q)
                 @php
-                    $stepIdx = $i + $totalPG;
-                    $key = "q$stepIdx";
-                    $status = $this->getQuestionStatus($key);
-                    $isActive = $activeTab === 'essay' && $currentStep === $i;
+                    $stepNumber = $index + 1;
+                    $status = $this->getQuestionStatus($q->id);
+                    $isActive = $activeTab === 'essay' && $currentStep === $stepNumber;
                 @endphp
-                <button wire:click="goToStep('essay', {{ $i }})" @class([
-                    'w-10 h-10 rounded-lg text-xs font-bold transition-all border-2',
-                    'border-primary-600' => $isActive,
-                    'bg-orange-500 text-white border-orange-500' => $status === 'doubtful',
-                    'bg-primary-500 text-white border-primary-500' =>
-                        $status === 'answered' && !$isActive,
-                    'bg-white text-gray-400 border-gray-200 hover:border-primary-300' =>
-                        $status === 'unanswered' && !$isActive,
-                ])>
-                    E{{ $i }}
+                <button wire:key="nav-essay-{{ $q->id }}" wire:click="goToStep('essay', {{ $stepNumber }})"
+                    @class([
+                        'w-10 h-10 rounded-lg text-xs font-bold transition-all border-2 flex items-center justify-center',
+                        'ring-1 ring-gray-400 z-10 scale-110 shadow-md font-extrabold' => $isActive,
+                        'ring-green-500' =>
+                            $isActive && ($status === 'answered' && $status !== 'doubtful'),
+                        'ring-orange-600' => $isActive && $status === 'doubtful',
+                        'bg-orange-500 text-white border-orange-400' => $status === 'doubtful',
+                        'bg-primary-500 text-white border-green-400' =>
+                            $status === 'answered' && $status !== 'doubtful',
+                        'bg-white text-gray-400 border-gray-200' => $status === 'unanswered',
+                        'text-primary-600' => $status === 'unanswered' && $isActive,
+                    ])>
+                    E{{ $stepNumber }}
                 </button>
-            @endfor
+            @endforeach
         </div>
 
-        <!-- Legend (Keterangan Warna) -->
         <div class="mt-6 flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-400">
             <div class="flex items-center gap-2">
                 <div class="w-3 h-3 bg-white border border-gray-200 rounded"></div> Belum
@@ -138,6 +154,10 @@
             <div class="flex items-center gap-2">
                 <div class="w-3 h-3 bg-orange-500 rounded"></div> Ragu-Ragu
             </div>
+        </div>
+
+        <div class="w-full flex justify-center md:justify-end mt-4">
+            {{ $this->submitAction }}
         </div>
     </div>
 </div>
@@ -173,5 +193,24 @@
                 return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             }
         }))
+    });
+</script>
+
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        Livewire.on('step-changed', () => {
+            // 1. Scroll ke paling atas halaman
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth' // Gunakan 'smooth' untuk efek halus, atau 'auto' untuk instan
+            });
+
+            /*
+            const element = document.getElementById('question-area');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            */
+        });
     });
 </script>
