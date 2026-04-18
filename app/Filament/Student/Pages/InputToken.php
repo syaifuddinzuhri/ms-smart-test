@@ -21,6 +21,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Safe\Exceptions\ExecException;
 
 class InputToken extends Page implements HasForms
 {
@@ -189,6 +190,11 @@ class InputToken extends Page implements HasForms
 
         if ($session->exists && $session->status === ExamSessionStatus::COMPLETED) {
             throw new Exception("Anda sudah menyelesaikan ujian ini.");
+        }
+
+        if ($this->session->violation_count >= 5) {
+            $this->session->update(['status' => ExamSessionStatus::PAUSE]);
+            throw new ExecException("Anda terlalu sering keluar atau melanggar ketentuan ujain. Hubungi pengawas agar ditindak lanjut");
         }
 
         $plainToken = Str::random(64);

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ExamSessionStatus;
 use App\Enums\ExamStatus;
 use App\Filament\Resources\ExamResource\Pages;
 use App\Models\Exam;
@@ -25,6 +26,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ExamResource extends Resource
 {
@@ -328,90 +330,15 @@ class ExamResource extends Resource
                                 ->label('Tambahan Waktu (Menit)')
                                 ->numeric()
                                 ->suffix('Menit')
-                                ->helperText('Waktu selesai ujian akan otomatis bertambah dari waktu saat ini/waktu selesai sebelumnya.')
+                                ->minValue(1)
+                                ->helperText('Waktu selesai ujian dan sisa waktu peserta akan bertambah secara massal.')
                                 ->visible(
                                     fn(Get $get, Exam $record) =>
                                     $record->status !== ExamStatus::DRAFT && $get('status') !== ExamStatus::DRAFT->value
                                 )
                                 ->placeholder('Masukkan angka menit...'),
                         ])
-                        ->action(function (Exam $record, array $data) {
-                            $oldStatus = $record->status;
-                            $newStatus = ExamStatus::from($data['status']);
-                            $additionalMinutes = (int) ($data['additional_minutes'] ?? 0);
-
-                            if ($oldStatus === $newStatus && $additionalMinutes <= 0) {
-                                return;
-                            }
-
-                            $allowedTransitions = match ($oldStatus) {
-                                ExamStatus::DRAFT => [ExamStatus::ACTIVE, ExamStatus::INACTIVE, ExamStatus::CLOSED],
-                                ExamStatus::ACTIVE => [ExamStatus::INACTIVE, ExamStatus::CLOSED, ExamStatus::DRAFT],
-                                ExamStatus::INACTIVE => [ExamStatus::ACTIVE, ExamStatus::CLOSED, ExamStatus::DRAFT],
-                                ExamStatus::CLOSED => [ExamStatus::ACTIVE],
-                                default => [],
-                            };
-
-                            $isStatusStay = ($newStatus === $oldStatus);
-                            $isAllowed = in_array($newStatus, $allowedTransitions);
-
-                            if (!$isStatusStay && !$isAllowed) {
-                                Notification::make()
-                                    ->title('Transisi Status Gagal')
-                                    ->body("Status {$oldStatus->getLabel()} tidak bisa diubah langsung ke {$newStatus->getLabel()}.")
-                                    ->danger()
-                                    ->send();
-
-                                return;
-                            }
-
-                            if ($newStatus === ExamStatus::ACTIVE) {
-                                if (!$record->examQuestions()->exists()) {
-                                    Notification::make()
-                                        ->title('Gagal Mengaktifkan Ujian')
-                                        ->body('Ujian ini belum memiliki soal. Harap isi soal minimal 1 sebelum diaktifkan.')
-                                        ->danger()
-                                        ->send();
-
-                                    return;
-                                }
-                            }
-
-                            if ($newStatus === ExamStatus::DRAFT) {
-                                $hasParticipants = $record->sessions()->exists();
-
-                                if ($hasParticipants) {
-                                    Notification::make()
-                                        ->title('Gagal Kembali ke Draft')
-                                        ->body('Ujian tidak bisa dikembalikan ke Draft karena sudah ada siswa yang mengakses/mengerjakan.')
-                                        ->warning()
-                                        ->send();
-                                    return;
-                                }
-                            }
-
-                            $message = "Ujian kini berstatus {$newStatus->getLabel()}.";
-
-                            if ($additionalMinutes > 0) {
-                                $baseTime = $record->end_time->isPast() ? now() : $record->end_time;
-
-                                $record->end_time = $baseTime->addMinutes($additionalMinutes);
-
-                                $record->status = ExamStatus::ACTIVE;
-
-                                $message .= " Dan waktu selesai diperpanjang {$additionalMinutes} menit.";
-                            } else {
-                                $record->status = $newStatus;
-                            }
-
-                            $record->save();
-
-                            Notification::make()
-                                ->title('Status Berhasil Diperbarui')
-                                ->body($message)
-                                ->success()
-                                ->send();
-                        }),
+                        ->action(fn(Exam $record, array $data) => self::handleStatusUpdate($record, $data)),
 
                     Tables\Actions\EditAction::make()
                         ->icon(fn($record) => $record->status === ExamStatus::CLOSED ? 'heroicon-m-lock-closed' : 'heroicon-m-pencil-square')
@@ -424,6 +351,88 @@ class ExamResource extends Resource
                     ->color('gray')
                     ->button(),
             ]);
+    }
+
+    protected static function handleStatusUpdate(Exam $record, array $data): void
+    {
+        $oldStatus = $record->status;
+        $newStatus = ExamStatus::from($data['status']);
+        $additionalMinutes = (int) ($data['additional_minutes'] ?? 0);
+
+        // 1. Validasi Transisi Status (Early Return jika tidak valid)
+        if ($oldStatus === $newStatus && $additionalMinutes <= 0) {
+            return;
+        }
+
+        $allowedTransitions = match ($oldStatus) {
+            ExamStatus::DRAFT => [ExamStatus::ACTIVE, ExamStatus::INACTIVE, ExamStatus::CLOSED],
+            ExamStatus::ACTIVE => [ExamStatus::INACTIVE, ExamStatus::CLOSED, ExamStatus::DRAFT],
+            ExamStatus::INACTIVE => [ExamStatus::ACTIVE, ExamStatus::CLOSED, ExamStatus::DRAFT],
+            ExamStatus::CLOSED => [ExamStatus::ACTIVE],
+            default => [],
+        };
+
+        if ($newStatus !== $oldStatus && !in_array($newStatus, $allowedTransitions)) {
+            Notification::make()->title('Transisi Status Gagal')->danger()
+                ->body("Status {$oldStatus->getLabel()} tidak bisa diubah langsung ke {$newStatus->getLabel()}.")->send();
+            return;
+        }
+
+        // 2. Validasi Kelengkapan Soal
+        if ($newStatus === ExamStatus::ACTIVE && !$record->examQuestions()->exists()) {
+            Notification::make()->title('Gagal Mengaktifkan')->danger()
+                ->body('Ujian belum memiliki soal. Isi minimal 1 soal sebelum diaktifkan.')->send();
+            return;
+        }
+
+        // 3. Validasi Kembali ke Draft
+        if ($newStatus === ExamStatus::DRAFT && $record->sessions()->exists()) {
+            Notification::make()->title('Gagal Kembali ke Draft')->warning()
+                ->body('Ujian tidak bisa kembali ke Draft karena sudah diakses oleh peserta.')->send();
+            return;
+        }
+
+        // 4. Proses Database dengan Transaction
+        DB::transaction(function () use ($record, $newStatus, $additionalMinutes) {
+            $messageSuffix = "";
+
+            // Logika Penambahan Waktu
+            if ($additionalMinutes > 0) {
+                $baseEndTime = $record->end_time->isPast() ? now() : $record->end_time;
+                $record->end_time = $baseEndTime->addMinutes($additionalMinutes);
+                $record->duration += $additionalMinutes;
+
+                // Otomatis aktifkan jika menambah waktu
+                $record->status = ExamStatus::ACTIVE;
+
+                // Hanya update sesi yang belum selesai
+                $record->sessions()
+                    ->where('status', '!=', ExamSessionStatus::COMPLETED)
+                    ->increment('remaining_duration', $additionalMinutes * 60);
+
+                $messageSuffix = " Serta sisa waktu semua peserta bertambah {$additionalMinutes} menit.";
+            } else {
+                $record->status = $newStatus;
+            }
+
+            if ($record->status === ExamStatus::INACTIVE) {
+                $record->sessions()
+                    ->whereIn('status', [ExamSessionStatus::ONGOING])
+                    ->update([
+                        'status' => ExamSessionStatus::PAUSE,
+                        'token' => null,
+                        'system_id' => null
+                    ]);
+            }
+
+            $record->save();
+
+            Notification::make()
+                ->title('Status Diperbarui')
+                ->success()
+                ->body("Ujian kini berstatus {$record->status->getLabel()}.{$messageSuffix}")
+                ->send();
+        });
     }
 
     public static function getEloquentQuery(): Builder

@@ -103,23 +103,38 @@ class StartTest extends Page implements HasForms, HasActions
         $this->isLocked = true;
     }
 
-    public function updateRemainingTime($seconds): void
+    public function updateRemainingTime($clientSeconds): int
     {
         if ($this->session) {
+            $this->session->refresh();
+
+            // JIKA waktu di DB jauh lebih besar dari yang dikirim client (misal selisih > 10 detik)
+            // Artinya Admin baru saja menambah waktu secara massal.
+            if ($this->session->remaining_duration > ($clientSeconds + 10)) {
+                // Jangan update DB, cukup kembalikan waktu dari DB ke browser siswa
+                return $this->session->remaining_duration;
+            }
+
+            // Jika normal, baru update DB
             $this->session->update([
-                'remaining_duration' => $seconds
+                'remaining_duration' => $clientSeconds
             ]);
         }
+
+        return $clientSeconds;
     }
 
     public function timeOut(): void
     {
-        $this->submit();
-        Notification::make()
-            ->title('Waktu Habis')
-            ->body('Ujian otomatis tersimpan karena waktu telah selesai.')
-            ->warning()
-            ->send();
+        $lastCurrentQuestionId = $this->currentQuestionId;
+
+        if ($lastCurrentQuestionId) {
+            $this->saveAnswer($lastCurrentQuestionId, false);
+        }
+
+        $this->dispatch('close-modal', id: '*');
+
+        $this->submit(true);
     }
 
     public function getQuestionStatus($questionId)
@@ -259,21 +274,39 @@ class StartTest extends Page implements HasForms, HasActions
             });
     }
 
-    public function submit()
+    public function submit(bool $isTimeout = false)
     {
+        $this->session->refresh();
+
+        if ($this->session->status === ExamSessionStatus::COMPLETED) {
+            return;
+        }
+
         $this->dispatch('prepare-navigation');
         $jawaban = $this->form->getState();
 
         $this->session->update([
             'token' => null,
-            'system_id' => null
+            'system_id' => null,
+            'status' => ExamSessionStatus::COMPLETED,
+            'finished_at' => now(),
         ]);
 
-        Notification::make()
-            ->title('Jawaban Berhasil Terkirim')
-            ->body('Terima kasih, jawaban ujian Anda telah kami terima.')
-            ->success()
-            ->send();
+        // PROSES UPDATE LAIN NANTI
+
+        if ($isTimeout) {
+            Notification::make()
+                ->title('Waktu Habis')
+                ->body('Ujian otomatis tersimpan karena waktu telah selesai.')
+                ->warning()
+                ->persistent()
+                ->send();
+        } else {
+            Notification::make()->title('Ujian Berhasil Dikirim')
+                ->body('Terima kasih, jawaban ujian Anda telah kami terima.')
+                ->success()
+                ->send();
+        }
 
         return redirect()->to('/student');
     }

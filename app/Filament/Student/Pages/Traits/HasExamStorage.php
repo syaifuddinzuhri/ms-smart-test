@@ -2,15 +2,55 @@
 
 namespace App\Filament\Student\Pages\Traits;
 
+use App\Enums\ExamSessionStatus;
+use App\Enums\ExamStatus;
 use App\Models\ExamAnswer;
 use App\Models\Question;
 use App\Enums\QuestionType;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 
 trait HasExamStorage
 {
+
+    protected function validateSessionState()
+    {
+        $this->session->refresh();
+        $this->exam->refresh();
+
+        $isValid = true;
+        $reason = '';
+
+        if (!$this->session->token || !$this->session->system_id) {
+            $isValid = false;
+            $reason = 'Kredensial sesi ujian hilang atau tidak valid.';
+        } elseif ($this->session->status !== ExamSessionStatus::ONGOING) {
+            $isValid = false;
+            $reason = 'Status ujian Anda saat ini adalah: ' . $this->session->status->getLabel();
+        } elseif ($this->exam->status !== ExamStatus::ACTIVE) {
+            $isValid = false;
+            $reason = 'Ujian ini telah dinonaktifkan oleh pengawas.';
+        }
+
+        if (!$isValid) {
+            Notification::make()
+                ->title('Sesi Tidak Valid')
+                ->body($reason)
+                ->danger()
+                ->send();
+
+            return redirect()->to('/student');
+        }
+
+        return true;
+    }
     public function saveAnswer($questionId = null, $moveNext = false)
     {
+        $validation = $this->validateSessionState();
+        if ($validation !== true) {
+            return $validation;
+        }
+
         $questionId = $questionId ?: $this->currentQuestionId;
         if (!$questionId)
             return;

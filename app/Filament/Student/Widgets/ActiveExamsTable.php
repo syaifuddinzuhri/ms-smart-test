@@ -31,7 +31,20 @@ class ActiveExamsTable extends BaseWidget
                         $query->where('classroom_id', $classroomId);
                     })
                     ->whereHas('examQuestions')
-                    ->whereIn('status', [ExamStatus::ACTIVE->value, ExamStatus::INACTIVE->value])
+                    ->where(function ($query) use ($user) {
+                        // Kondisi 1: Tampilkan jika ACTIVE
+                        $query->where('status', ExamStatus::ACTIVE->value)
+                            ->where('start_time', '<=', now())
+                            // Optional: Ujian active tetap muncu jika sudah punya sesi meski end_time lewat
+                            ->where(fn($q) => $q->where('end_time', '>=', now())
+                                ->orWhereHas('sessions', fn($s) => $s->where('user_id', $user->id)));
+
+                        // Kondisi 2: Tampilkan jika INACTIVE tapi peserta SUDAH PUNYA SESSION
+                        $query->orWhere(function ($sub) use ($user) {
+                            $sub->where('status', ExamStatus::INACTIVE->value)
+                                ->whereHas('sessions', fn($s) => $s->where('user_id', $user->id));
+                        });
+                    })
                     ->with([
                         'sessions' => function ($query) use ($user) {
                             $query->where('user_id', $user->id);
@@ -154,7 +167,11 @@ class ActiveExamsTable extends BaseWidget
                     })
                     ->button()
                     ->color(function (Exam $record) {
+                        if ($record->status === ExamStatus::INACTIVE)
+                            return 'gray';
+
                         $session = $record->sessions->first();
+
                         if (!$session)
                             return 'primary';
 
@@ -169,16 +186,18 @@ class ActiveExamsTable extends BaseWidget
                         'class' => 'w-full md:w-auto mt-4 justify-center',
                     ])
                     ->url(function ($record) {
-                        $session = $record->sessions->first();
-                        if ($record->status === ExamStatus::INACTIVE || ($session && $session->status === ExamSessionStatus::COMPLETED)) {
+                        if ($record->status === ExamStatus::INACTIVE)
                             return null;
-                        }
 
                         return route('filament.student.pages.input-token', ['exam_id' => $record->id]);
                     })
                     ->disabled(function ($record) {
                         $session = $record->sessions->first();
-                        return $record->status === ExamStatus::INACTIVE || ($session && $session->status === ExamSessionStatus::COMPLETED);
+                        // Tombol mati jika:
+                        // 1. Ujian INACTIVE (Admin mematikan ujian sementara)
+                        // 2. ATAU Siswa sudah selesai (COMPLETED)
+                        return $record->status === ExamStatus::INACTIVE ||
+                            ($session && $session->status === ExamSessionStatus::COMPLETED);
                     }),
             ])
             ->paginated(false);

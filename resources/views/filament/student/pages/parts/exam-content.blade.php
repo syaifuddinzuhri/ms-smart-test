@@ -173,23 +173,40 @@
         Alpine.data('timerHandler', (initialSeconds) => ({
             remaining: initialSeconds,
             lastSync: initialSeconds,
+            isFinishing: false,
 
             initTimer() {
-                this.interval = setInterval(() => {
+                this.interval = setInterval(async () => {
+                    if (this.isFinishing) return;
+
                     if (this.remaining > 0) {
                         this.remaining--;
 
-                        // SINKRONISASI KE DATABASE SETIAP 30 DETIK
-                        // Agar jika siswa pindah HP, waktunya tidak reset ke awal
+                        // SINKRONISASI SETIAP 30 DETIK
                         if (this.lastSync - this.remaining >= 30) {
-                            @this.updateRemainingTime(this.remaining);
-                            this.lastSync = this.remaining;
+                            // Kirim ke server dan dapatkan durasi 'resmi' dari server
+                            const serverDuration = await @this.updateRemainingTime(this
+                                .remaining);
+
+                            // Update timer lokal dengan data server (menangani penambahan waktu admin)
+                            this.remaining = serverDuration;
+                            this.lastSync = serverDuration;
                         }
                     } else {
+                        this.isFinishing = true;
                         clearInterval(this.interval);
                         @this.timeOut();
+
+                        setTimeout(() => {
+                            window.location.href = '/student';
+                        }, 5000);
                     }
                 }, 1000);
+
+                window.addEventListener('prepare-navigation', () => {
+                    this.isFinishing = true;
+                    clearInterval(this.interval);
+                });
             },
 
             formatTime(seconds) {
