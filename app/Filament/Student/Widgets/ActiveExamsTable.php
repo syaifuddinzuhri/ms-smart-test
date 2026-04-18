@@ -3,12 +3,15 @@
 namespace App\Filament\Student\Widgets;
 
 use App\Enums\ExamSessionStatus;
+use App\Enums\ExamStatus;
+use App\Models\Exam;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\Layout\Split;
+use Illuminate\Support\Facades\Auth;
 
 class ActiveExamsTable extends BaseWidget
 {
@@ -18,91 +21,162 @@ class ActiveExamsTable extends BaseWidget
 
     public function table(Table $table): Table
     {
+        $user = Auth::user();
+        $classroomId = $user->student?->classroom_id;
+
         return $table
             ->query(
-                \App\Models\User::query()->limit(5)
+                Exam::query()
+                    ->whereHas('classrooms', function ($query) use ($classroomId) {
+                        $query->where('classroom_id', $classroomId);
+                    })
+                    ->whereIn('status', [ExamStatus::ACTIVE->value, ExamStatus::INACTIVE->value])
+                    ->with([
+                        'sessions' => function ($query) use ($user) {
+                            $query->where('user_id', $user->id);
+                        }
+                    ])
             )
             ->columns([
                 Stack::make([
-                    Tables\Columns\TextColumn::make('judul')
+                    Tables\Columns\TextColumn::make('title')
                         ->label('Ujian / Mata Pelajaran')
-                        ->default('Ujian Tengah Semester - Matematika')
                         ->weight(FontWeight::Bold)
                         ->color('primary')
                         ->size(Tables\Columns\TextColumn\TextColumnSize::Large),
 
-                    Tables\Columns\TextColumn::make('mapel')
-                        ->default('Mata Pelajaran: Matematika Dasar')
+                    Tables\Columns\TextColumn::make('subject.name')
+                        ->formatStateUsing(fn($state) => 'Mata Pelajaran: ' . $state)
                         ->size(Tables\Columns\TextColumn\TextColumnSize::ExtraSmall)
                         ->color('gray'),
 
                     Split::make([
-                        Tables\Columns\TextColumn::make('durasi')
-                            ->default('90 Menit')
+                        Tables\Columns\TextColumn::make('duration')
+                            ->formatStateUsing(fn($state) => $state . ' Menit')
                             ->badge()
                             ->color('danger'),
 
                         Tables\Columns\TextColumn::make('status')
                             ->badge()
                             ->getStateUsing(function ($record) {
-                                $index = abs(crc32($record->id)) % 4;
-                                return match ($index) {
-                                    0 => ExamSessionStatus::PENDING,
-                                    1 => ExamSessionStatus::NOT_STARTED,
-                                    2 => ExamSessionStatus::ONGOING,
-                                    3 => ExamSessionStatus::COMPLETED,
-                                };
+                                if ($record->status === ExamStatus::INACTIVE) {
+                                    return ExamStatus::INACTIVE->getLabel();
+                                }
+
+                                $session = $record->sessions->first();
+
+                                if (!$session) {
+                                    return ExamSessionStatus::NOT_STARTED->getLabel();
+                                }
+
+                                return $session->status->getLabel();
+                            })
+                            ->color(function (Exam $record) {
+                                if ($record->status === ExamStatus::INACTIVE) {
+                                    return 'gray';
+                                }
+
+                                $session = $record->sessions->first();
+                                if (!$session)
+                                    return 'warning';
+
+                                return $session->status->getColor();
                             }),
                     ])->extraAttributes(['class' => 'mt-3 mb-2']),
 
-                    Tables\Columns\TextColumn::make('jadwal')
-                        ->default('Dimulai: Hari ini, 08:00 WIB')
-                        ->size(Tables\Columns\TextColumn\TextColumnSize::ExtraSmall)
+                    Tables\Columns\TextColumn::make('start_time')
+                        ->label('Jadwal Pelaksanaan')
                         ->icon('heroicon-m-calendar-days')
-                        ->color('gray'),
+                        ->color('gray')
+                        ->weight('medium')
+                        ->formatStateUsing(function (Exam $record) {
+                            $start = $record->start_time;
+                            $end = $record->end_time;
+
+                            if (!$start || !$end)
+                                return '-';
+
+                            if ($start->isSameDay($end)) {
+                                return $start->translatedFormat('d F Y');
+                            }
+
+                            return $start->translatedFormat('d M Y, H:i T');
+                        })
+                        ->description(function (Exam $record): \Illuminate\Support\HtmlString {
+                            $start = $record->start_time;
+                            $end = $record->end_time;
+
+                            if (!$start || !$end)
+                                return new \Illuminate\Support\HtmlString('');
+
+                            if ($start->isSameDay($end)) {
+                                return new \Illuminate\Support\HtmlString("
+                                <div class='flex items-center gap-1 text-primary-600 font-medium text-xs mt-0.5'>
+                                    <svg class='w-3.5 h-3.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'></path></svg>
+                                    <span>{$start->format('H:i')} — {$end->format('H:i T')}</span>
+                                </div>
+                            ");
+                            }
+
+                            return new \Illuminate\Support\HtmlString("
+                            <div class='text-gray-500 text-xs mt-0.5'>
+                                Selesai: <span class='text-gray-500'>{$end->translatedFormat('d M Y, H:i T')}</span>
+                            </div>
+                        ");
+                        }),
                 ])->space(2),
             ])
             ->actions([
                 Tables\Actions\Action::make('mulai')
-                    ->label(function ($record) {
-                        $index = abs(crc32($record->id)) % 4;
-                        return match ($index) {
-                            0 => 'Belum Mulai',
-                            1 => 'Mulai Ujian',
-                            2 => 'Lanjutkan',
-                            3 => 'Lihat Hasil',
+                    ->label(function (Exam $record) {
+                        $session = $record->sessions->first();
+                        if (!$session)
+                            return 'Mulai Ujian';
+
+                        return match ($session->status) {
+                            ExamSessionStatus::ONGOING => 'Lanjutkan',
+                            ExamSessionStatus::COMPLETED => 'Sudah Selesai',
+                            default => 'Sedang Dikerjakan',
                         };
                     })
-                    ->icon(function ($record) {
-                        $index = abs(crc32($record->id)) % 4;
-                        return match ($index) {
-                            0 => 'heroicon-m-clock',
-                            1 => 'heroicon-m-play',
-                            2 => 'heroicon-m-arrow-path',
-                            3 => 'heroicon-m-document-check',
+                    ->icon(function (Exam $record) {
+                        $session = $record->sessions->first();
+                        if (!$session)
+                            return 'heroicon-m-play';
+
+                        return match ($session->status) {
+                            ExamSessionStatus::ONGOING => 'heroicon-m-arrow-path',
+                            ExamSessionStatus::COMPLETED => 'heroicon-m-check-circle',
+                            default => 'heroicon-m-play',
                         };
                     })
                     ->button()
-                    ->color(function ($record) {
-                        $index = abs(crc32($record->id)) % 4;
-                        return match ($index) {
-                            0 => 'gray',
-                            1 => 'primary',
-                            2 => 'warning',
-                            3 => 'success',
+                    ->color(function (Exam $record) {
+                        $session = $record->sessions->first();
+                        if (!$session)
+                            return 'primary';
+
+                        return match ($session->status) {
+                            ExamSessionStatus::ONGOING => 'warning',
+                            ExamSessionStatus::COMPLETED => 'success',
+                            default => 'primary',
                         };
                     })
                     ->extraAttributes([
                         'class' => 'w-full md:w-auto mt-4 justify-center',
                     ])
                     ->url(function ($record) {
-                        $index = abs(crc32($record->id)) % 4;
-                        if (in_array($index, [0, 3]))
-                            return '#';
+                        $session = $record->sessions->first();
+                        if ($record->status === ExamStatus::INACTIVE || ($session && $session->status === ExamSessionStatus::COMPLETED)) {
+                            return null;
+                        }
 
                         return route('filament.student.pages.input-token', ['exam_id' => $record->id]);
                     })
-                    ->disabled(fn($record) => (abs(crc32($record->id)) % 4) === 0),
+                    ->disabled(function ($record) {
+                        $session = $record->sessions->first();
+                        return $record->status === ExamStatus::INACTIVE || ($session && $session->status === ExamSessionStatus::COMPLETED);
+                    }),
             ])
             ->paginated(false);
     }

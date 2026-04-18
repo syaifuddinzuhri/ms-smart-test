@@ -22,7 +22,7 @@ enum ExamSessionStatus: string implements HasLabel, HasColor
         return match ($this) {
             self::PENDING => 'Menunggu Jadwal',
             self::NOT_STARTED => 'Belum Dikerjakan',
-            self::ONGOING => 'Sedang Berlangsung',
+            self::ONGOING => 'Sedang Dikerjakan',
             self::PAUSE => 'Terjeda',
             self::COMPLETED => 'Sudah Selesai',
         };
