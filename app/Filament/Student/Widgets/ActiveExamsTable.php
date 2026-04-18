@@ -159,9 +159,10 @@ class ActiveExamsTable extends BaseWidget
                             return 'primary';
 
                         return match ($session->status) {
+                            ExamSessionStatus::PAUSE => 'info',
                             ExamSessionStatus::ONGOING => 'warning',
                             ExamSessionStatus::COMPLETED => 'success',
-                            default => 'primary',
+                            default => 'gray',
                         };
                     })
                     ->extraAttributes([
