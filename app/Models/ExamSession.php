@@ -19,6 +19,8 @@ class ExamSession extends Model
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
         'last_violation_at' => 'datetime',
+        'last_activity' => 'datetime',
+        'violation_log' => 'array',
     ];
 
     public function exam(): BelongsTo

@@ -72,7 +72,17 @@ class StartTest extends Page implements HasForms, HasActions
         if ($this->totalPG === 0 && $this->totalEssay > 0)
             $this->activeTab = 'essay';
 
-        $this->durationInSeconds = $this->session->remaining_duration ?? ($this->exam->duration * 60);
+        $now = now();
+        $examEndTime = $this->exam->end_time;
+        $remainingUntilEnd = $now->diffInSeconds($examEndTime, false);
+
+        if ($remainingUntilEnd <= 0) {
+            Notification::make()->title('Ujian Telah Berakhir')->danger()->send();
+            return redirect()->to('/student');
+        }
+
+        // Sisa waktu sebenarnya adalah yang terkecil antara jatah durasi vs jadwal selesai
+        $this->durationInSeconds = min($this->session->remaining_duration, $remainingUntilEnd);
 
         // Load Initial Data
         $savedAnswers = ExamAnswer::where('exam_session_id', $this->session->id)->with('selectedOptions')->get();
@@ -89,16 +99,30 @@ class StartTest extends Page implements HasForms, HasActions
         $this->form->fill($this->data);
     }
 
-    public function lockExam(): void
+    public function lockExam($reason = 'Sistem mendeteksi perpindahan jendela/tab'): void
     {
         if (!isProduction())
             return;
+
+        $this->session->refresh();
+
+        $logs = $this->session->violation_log ?? [];
+
+        $logs[] = [
+            'time' => now()->toDateTimeString(),
+            'reason' => $reason,
+            'step' => $this->currentStep,
+            'tab' => $this->activeTab,
+            'ip' => request()->ip(),
+        ];
 
         $updateData = [
             'status' => ExamSessionStatus::PAUSE->value,
             'last_violation_at' => now(),
             'violation_count' => ($this->exam->violation_count ?? 0) + 1,
+            'violation_log' => $logs,
         ];
+
         $this->session->update($updateData);
         $this->isLocked = true;
     }
@@ -117,7 +141,8 @@ class StartTest extends Page implements HasForms, HasActions
 
             // Jika normal, baru update DB
             $this->session->update([
-                'remaining_duration' => $clientSeconds
+                'remaining_duration' => $clientSeconds,
+                'last_activity' => now(),
             ]);
         }
 
@@ -276,10 +301,17 @@ class StartTest extends Page implements HasForms, HasActions
 
     public function submit(bool $isTimeout = false)
     {
+        $this->exam->refresh();
         $this->session->refresh();
 
         if ($this->session->status === ExamSessionStatus::COMPLETED) {
             return;
+        }
+
+        // Proteksi tambahan: Jika end_time ujian sudah lewat > 5 menit (toleransi),
+        // paksa submit meskipun JS belum mengirim timeout.
+        if (now()->gt($this->exam->end_time->addMinutes(5))) {
+            $isTimeout = true;
         }
 
         $this->dispatch('prepare-navigation');
