@@ -261,6 +261,7 @@ class StartTest extends Page implements HasForms, HasActions
 
     public function submit()
     {
+        $this->dispatch('prepare-navigation');
         $jawaban = $this->form->getState();
 
         $this->session->update([

@@ -163,11 +163,6 @@ class InputToken extends Page implements HasForms
                 ->send();
         }
 
-        Notification::make()
-            ->title('Verifikasi Berhasil')
-            ->success()
-            ->send();
-
         return redirect()->to(route('filament.student.pages.start-test', ['token' => $tokenSession]));
     }
 

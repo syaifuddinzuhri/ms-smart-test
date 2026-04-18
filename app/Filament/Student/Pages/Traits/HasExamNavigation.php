@@ -117,6 +117,8 @@ trait HasExamNavigation
 
     public function backToDashboard()
     {
+        $this->dispatch('prepare-navigation');
+
         $this->saveAnswer(); // Simpan progres terakhir
 
         $this->session->update([

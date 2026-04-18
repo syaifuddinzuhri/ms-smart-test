@@ -7,7 +7,7 @@
             // 1. Belum terkunci
             // 2. Halaman sudah siap (lewat masa tenggang 2 detik)
             // 3. Bukan karena proses reload/refresh halaman
-            if (!this.isLocked && window.isPageReady && !window.isReloading) {
+            if (!this.isLocked && window.isPageReady && !window.isNavigatingAllowed && !window.isReloading) {
                 $wire.call('lockExam');
             }
         }
@@ -37,44 +37,7 @@
         @blur.window="setTimeout(() => { if (!document.hasFocus()) lockExam() }, 200);" class="relative">
 
         {{-- <template x-if="showFullscreenOverlay && !isLocked">
-            <div
-                class="fixed inset-0 z-[999998] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 text-center">
-                <div class="bg-white p-8 rounded-2xl max-w-sm shadow-2xl">
-                    <div class="text-amber-500 mb-4 animate-bounce">
-                        <x-heroicon-o-arrows-pointing-out class="w-16 h-16 mx-auto" />
-                    </div>
-                    <h3 class="text-xl font-bold mb-2 text-gray-900 uppercase tracking-tight">
-                        Fokus Mode Aktif
-                    </h3>
-
-                    <div class="space-y-3 mb-6">
-                        <p class="text-gray-600 text-sm leading-relaxed px-2">
-                            Untuk menjaga integritas, Anda wajib mengerjakan ujian dalam
-                            <span class="font-bold text-gray-800">Tampilan Layar Penuh (DESKTOP)</span>.
-                            Jangan keluar dari halaman ini sebelum selesai.
-                        </p>
-
-                        <div
-                            class="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-3 justify-center mx-auto">
-                            <div class="relative flex h-3 w-3">
-                                <span
-                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
-                            </div>
-                            <p class="text-[11px] sm:text-xs font-black text-red-700 uppercase tracking-widest">
-                                Waktu ujian terus berjalan!
-                            </p>
-                        </div>
-                    </div>
-                    <x-filament::button size="lg" color="warning" class="w-full"
-                        @click="triggerFullScreen(); showFullscreenOverlay = false">
-                        MULAI KERJAKAN
-                    </x-filament::button>
-                    <p class="mt-4 text-[10px] text-gray-400 uppercase font-medium">
-                        MANUSGI SMART TEST • SECURITY PROTOCOL
-                    </p>
-                </div>
-            </div>
+            @include('filament.student.pages.parts.fullscreen-overlay')
         </template> --}}
 
         @if ($isLocked)
@@ -93,6 +56,58 @@
             window.isLockedFromDB = @js($isLocked);
             window.isPageReady = false;
             window.isReloading = false;
+            window.isNavigatingAllowed = false; // Flag untuk navigasi resmi
+            const lockHistory = () => {
+                if (window.isNavigatingAllowed) return;
+                const currentUrl = window.location.href.split('#')[0];
+                if (window.location.hash !== '#locked') {
+                    window.history.pushState({
+                        locked: true
+                    }, "", currentUrl + "#locked");
+                }
+            };
+
+            // Inisialisasi
+            window.history.replaceState({
+                root: true
+            }, "", window.location.href);
+            lockHistory();
+
+            // Re-lock saat interaksi (Anti-Reload)
+            const reLockHandler = () => lockHistory();
+            ['mousedown', 'keydown', 'touchstart'].forEach(event => {
+                window.addEventListener(event, reLockHandler);
+            });
+
+            // Tangkap Back
+            window.addEventListener('popstate', function(event) {
+                if (window.isNavigatingAllowed) return;
+                lockHistory();
+                @this.call('mountAction', 'submit');
+            });
+
+            /**
+             * FUNGSI UNTUK MEMBUKA KUNCI
+             */
+            const disableLock = () => {
+                window.isNavigatingAllowed = true;
+                // Hapus listener agar tidak berat
+                ['mousedown', 'keydown', 'touchstart'].forEach(event => {
+                    window.removeEventListener(event, reLockHandler);
+                });
+                // Bersihkan Hash URL
+                const cleanUrl = window.location.href.split('#')[0];
+                window.history.replaceState(null, "", cleanUrl);
+            };
+
+            // Trigger dari JS Manual (tombol x-on:click)
+            window.prepareNavigation = disableLock;
+
+            // Trigger dari PHP / Livewire (Dispatch dari Server)
+            window.addEventListener('prepare-navigation', disableLock);
+
+
+            // LOGIKA PROTEKSI
 
             // Berikan jeda agar tidak langsung mengunci saat halaman baru dimuat (refresh)
             setTimeout(() => {
@@ -114,7 +129,7 @@
 
             // Fungsi helper untuk lock (dipakai oleh auxclick/click manual)
             window.triggerLock = function() {
-                if (window.isPageReady && !window.isLockedFromDB && !window.isReloading) {
+                if (window.isPageReady && !window.isLockedFromDB && !window.isReloading && !window.isNavigatingAllowed) {
                     @this.call('lockExam');
                 }
             };
