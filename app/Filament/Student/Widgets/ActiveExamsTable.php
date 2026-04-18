@@ -136,9 +136,9 @@ class ActiveExamsTable extends BaseWidget
 
                         return match ($session->status) {
                             ExamSessionStatus::PAUSE => 'Lanjutkan',
-                            ExamSessionStatus::ONGOING => 'Lanjutkan',
+                            ExamSessionStatus::ONGOING => 'Sedang Dikerjakan',
                             ExamSessionStatus::COMPLETED => 'Sudah Selesai',
-                            default => 'Sedang Dikerjakan',
+                            default => 'Belum Dikerjakan',
                         };
                     })
                     ->icon(function (Exam $record) {
