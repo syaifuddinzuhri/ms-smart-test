@@ -36,7 +36,7 @@
         @visibilitychange.window="if (document.hidden) lockExam()"
         @blur.window="setTimeout(() => { if (!document.hasFocus()) lockExam() }, 200);" class="relative">
 
-        <template x-if="showFullscreenOverlay && !isLocked">
+        {{-- <template x-if="showFullscreenOverlay && !isLocked">
             <div
                 class="fixed inset-0 z-[999998] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 text-center">
                 <div class="bg-white p-8 rounded-2xl max-w-sm shadow-2xl">
@@ -75,13 +75,13 @@
                     </p>
                 </div>
             </div>
-        </template>
+        </template> --}}
 
         @if ($isLocked)
             @include('filament.student.pages.parts.lock-overlay')
         @endif
 
-        <div :style="isLocked || showFullscreenOverlay ? 'filter: blur(20px); pointer-events: none;' : ''">
+        <div :style="isLocked ? 'filter: blur(20px); pointer-events: none;' : ''">
             @include('filament.student.pages.parts.exam-content')
         </div>
     </div>
