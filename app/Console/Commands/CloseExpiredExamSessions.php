@@ -37,6 +37,7 @@ class CloseExpiredExamSessions extends Command
                 ExamSessionStatus::ONGOING,
                 ExamSessionStatus::PAUSE
             ])
+                ->where('updated_at', '>', now()->subDay())
                 ->where(function ($query) {
                     $query->where('remaining_duration', '<=', 0) // Kondisi durasi habis
                         ->orWhereHas('exam', function ($q) {
