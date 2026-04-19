@@ -84,7 +84,7 @@
                                 {{ $stats['score'] }}
                             </p>
 
-                            @if (!$stats['is_passed'])
+                            @if ($stats['is_passed'])
                                 <div
                                     class="flex items-center gap-1.5 px-4 py-1.5 bg-green-100 text-green-700 rounded-full border border-green-200 w-fit mx-auto">
                                     <x-heroicon-m-check-badge class="w-4 h-4" />
@@ -131,7 +131,7 @@
                         @endif
 
                         @if ($exam->show_result_to_student)
-                            @if (!$stats['is_passed'])
+                            @if ($stats['is_passed'])
                                 <div class="absolute -right-8 -bottom-10">
                                     <x-heroicon-s-academic-cap
                                         class="h-32 w-32 md:h-48 md:w-48 text-green-500 opacity-10 opacity-10 -rotate-12" />
