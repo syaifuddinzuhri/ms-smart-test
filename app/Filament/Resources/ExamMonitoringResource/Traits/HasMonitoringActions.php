@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ExamMonitoringResource\Traits;
 
 use App\Enums\ExamSessionStatus;
 use App\Models\ExamSession;
+use App\Services\ExamService;
 use Exception;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Placeholder;
@@ -129,29 +130,93 @@ trait HasMonitoringActions
 
     protected static function processBulkForceSubmit(\Illuminate\Support\Collection $records): void
     {
-        $records->each(function ($record) {
-            $record->update([
-                'status' => ExamSessionStatus::COMPLETED,
-                'finished_at' => now(),
-                'token' => null,
-                'system_id' => null,
-            ]);
-        });
+        $successCount = 0;
+        $failedCount = 0;
+        $examService = app(ExamService::class);
 
-        Notification::make()->title($records->count() . ' Sesi berhasil diselesaikan')->success()->send();
+        foreach ($records as $record) {
+            try {
+                DB::transaction(function () use ($record, $examService) {
+                    $record->refresh();
+
+                    if ($record->status === ExamSessionStatus::COMPLETED) {
+                        throw new Exception("Sesi sudah selesai.");
+                    }
+
+                    $examService->syncSessionScores($record);
+
+                    $record->update([
+                        'status' => ExamSessionStatus::COMPLETED,
+                        'finished_at' => now(),
+                        'token' => null,
+                        'system_id' => null,
+                    ]);
+                });
+
+                $successCount++;
+            } catch (Exception $e) {
+                $failedCount++;
+            }
+        }
+
+        $message = new HtmlString("
+            <div class='text-sm'>
+                <p><b>Berhasil:</b> <span class='text-success-600 font-bold'>{$successCount}</span> data</p>
+                <p><b>Gagal/Dilewati:</b> <span class='text-danger-600 font-bold'>{$failedCount}</span> data</p>
+            </div>
+        ");
+
+        Notification::make()
+            ->title('Proses Paksa Selesai Selesai')
+            ->body($message)
+            ->color($failedCount > 0 ? 'warning' : 'success')
+            ->icon($failedCount > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
+            ->send();
     }
 
     protected static function processBulkPause(\Illuminate\Support\Collection $records): void
     {
-        $records->each(function ($record) {
-            $record->update([
-                'token' => null,
-                'system_id' => null,
-                'status' => ExamSessionStatus::PAUSE
-            ]);
-        });
+        $successCount = 0;
+        $failedCount = 0;
 
-        Notification::make()->title($records->count() . ' Sesi berhasil dijeda')->success()->send();
+        foreach ($records as $record) {
+            try {
+                DB::transaction(function () use ($record) {
+                    $record->refresh();
+
+                    // Logika: Hanya sesi yang sedang ONGOING yang bisa di-pause
+                    // Jika sesi sudah COMPLETED, kita masukkan ke kategori gagal/dilewati
+                    if ($record->status !== ExamSessionStatus::ONGOING) {
+                        throw new Exception("Hanya sesi aktif yang bisa dijeda.");
+                    }
+
+                    $record->update([
+                        'token' => null,
+                        'system_id' => null,
+                        'status' => ExamSessionStatus::PAUSE
+                    ]);
+                });
+
+                $successCount++;
+            } catch (Exception $e) {
+                $failedCount++;
+            }
+        }
+
+        // Menyiapkan Body Notifikasi HTML
+        $message = new HtmlString("
+            <div class='text-sm'>
+                <p><b>Berhasil Dijeda:</b> <span class='text-success-600 font-bold'>{$successCount}</span> data</p>
+                <p><b>Gagal/Dilewati:</b> <span class='text-danger-600 font-bold'>{$failedCount}</span> data</p>
+            </div>
+        ");
+
+        Notification::make()
+            ->title('Proses Jeda Massal Selesai')
+            ->body($message)
+            ->color($failedCount > 0 ? 'warning' : 'success')
+            ->icon('heroicon-o-pause-circle')
+            ->send();
     }
 
     protected static function getAddDurationAction(): Action
@@ -314,16 +379,43 @@ trait HasMonitoringActions
 
     protected static function processForceSubmit(ExamSession $record): void
     {
-        $record->refresh();
+        try {
+            DB::transaction(function () use ($record) {
+                $record->refresh();
 
-        $record->update([
-            'status' => ExamSessionStatus::COMPLETED,
-            'finished_at' => now(),
-            'token' => null,
-            'system_id' => null,
-        ]);
+                if ($record->status === ExamSessionStatus::COMPLETED) {
+                    Notification::make()
+                        ->title('Terjadi kesalahan')
+                        ->body('Sesi sudah selesai.')
+                        ->warning()
+                        ->send();
+                    return;
+                }
 
-        Notification::make()->title('Peserta berhasil dipaksa selesai')->success()->send();
+                app(ExamService::class)->syncSessionScores($record);
+
+                $record->update([
+                    'token' => null,
+                    'system_id' => null,
+                    'status' => ExamSessionStatus::COMPLETED,
+                    'finished_at' => now(),
+                ]);
+
+            });
+
+            Notification::make()
+                ->title('Peserta berhasil dipaksa selesai')
+                ->body('Jawaban berhasil disimpan dan hasil didapatkan.')
+                ->success()
+                ->send();
+
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Terjadi kesalahan')
+                ->body($e->getMessage() ?? 'Gagal menyimpan hasil ujian.')
+                ->warning()
+                ->send();
+        }
     }
 
     protected static function processResetAnswers(ExamSession $record): void
@@ -335,6 +427,16 @@ trait HasMonitoringActions
     protected static function processPauseSession(ExamSession $record): void
     {
         $record->refresh();
+
+        if ($record->status !== ExamSessionStatus::ONGOING) {
+            Notification::make()
+                ->title('Terjadi kesalahan')
+                ->body('Hanya sesi aktif yang bisa dijeda.')
+                ->warning()
+                ->send();
+            return;
+        }
+
         $record->update([
             'token' => null,
             'system_id' => null,

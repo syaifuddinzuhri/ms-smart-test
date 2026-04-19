@@ -10,6 +10,8 @@ use App\Filament\Student\Pages\Traits\HasExamStorage;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamSession;
+use App\Services\ExamService;
+use Exception;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -26,6 +28,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\Alignment;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
 class StartTest extends Page implements HasForms, HasActions
@@ -293,6 +296,9 @@ class StartTest extends Page implements HasForms, HasActions
 
     public function submit(bool $isTimeout = false)
     {
+        $this->dispatch('prepare-navigation');
+        $this->form->getState();
+
         $this->exam->refresh();
         $this->session->refresh();
 
@@ -306,18 +312,6 @@ class StartTest extends Page implements HasForms, HasActions
             $isTimeout = true;
         }
 
-        $this->dispatch('prepare-navigation');
-        $jawaban = $this->form->getState();
-
-        $this->session->update([
-            'token' => null,
-            'system_id' => null,
-            'status' => ExamSessionStatus::COMPLETED,
-            'finished_at' => now(),
-        ]);
-
-        // PROSES UPDATE LAIN NANTI
-
         if ($isTimeout) {
             Notification::make()
                 ->title('Waktu Habis')
@@ -325,13 +319,37 @@ class StartTest extends Page implements HasForms, HasActions
                 ->warning()
                 ->persistent()
                 ->send();
-        } else {
+            return;
+        }
+
+        try {
+            DB::transaction(function () {
+                app(ExamService::class)->syncSessionScores($this->session);
+
+                $this->session->update([
+                    'token' => null,
+                    'system_id' => null,
+                    'status' => ExamSessionStatus::COMPLETED,
+                    'finished_at' => now(),
+                ]);
+
+            });
+
             Notification::make()->title('Ujian Berhasil Dikirim')
                 ->body('Terima kasih, jawaban ujian Anda telah kami terima.')
                 ->success()
                 ->send();
+
+            return redirect()->to('/student');
+
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Terjadi kesalahan')
+                ->body($e->getMessage() ?? 'Gagal menyimpan hasil ujian.')
+                ->warning()
+                ->persistent()
+                ->send();
         }
 
-        return redirect()->to('/student');
     }
 }

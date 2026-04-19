@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\ExamSessionStatus;
 use App\Models\ExamSession;
+use App\Services\ExamService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -40,6 +41,8 @@ class CloseExpiredExamSessions extends Command
                             // Tentukan waktu selesai yang paling akurat
                             // Jika karena durasi habis, pakai expires_at. Jika karena jadwal ditutup, pakai now.
                             $finishedAt = ($isPastExpiresAt) ? $session->expires_at : $now;
+
+                            app(ExamService::class)->syncSessionScores($session);
 
                             $session->update([
                                 'status' => ExamSessionStatus::COMPLETED,

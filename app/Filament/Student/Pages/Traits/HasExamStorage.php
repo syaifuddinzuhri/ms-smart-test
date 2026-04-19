@@ -131,10 +131,14 @@ trait HasExamStorage
             ? empty($answerValue)
             : (trim(strip_tags((string) $answerValue)) === '');
 
+        $examService = app(\App\Services\ExamService::class);
+
         if ($isAnswerEmpty && !$isDoubtful) {
             ExamAnswer::where('exam_session_id', $this->session->id)->where('question_id', $questionId)->delete();
+            // Tetap sync meskipun dihapus (untuk update poin null)
+            $examService->syncSessionScores($this->session);
         } else {
-            DB::transaction(function () use ($questionId, $answerValue, $type, $isDoubtful) {
+            DB::transaction(function () use ($questionId, $answerValue, $type, $isDoubtful, $examService) {
                 $answer = ExamAnswer::updateOrCreate(
                     ['exam_session_id' => $this->session->id, 'question_id' => $questionId],
                     [
@@ -147,6 +151,12 @@ trait HasExamStorage
                     $optionIds = is_array($answerValue) ? $answerValue : ($answerValue ? [$answerValue] : []);
                     $answer->selectedOptions()->sync($optionIds);
                 }
+
+                // HITUNG SKOR JAWABAN INI
+                $examService->gradeAnswer($answer);
+
+                // UPDATE TOTAL KE SESSION
+                $examService->syncSessionScores($this->session);
             });
         }
 
