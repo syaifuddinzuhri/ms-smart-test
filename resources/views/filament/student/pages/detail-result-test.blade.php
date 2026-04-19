@@ -72,7 +72,7 @@
             <div class="grid md:grid-cols-2 gap-4">
                 <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center md:col-span-1">
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter mb-1">Total Skor Akhir</p>
-                    @if (!$exam->show_result_to_student)
+                    @if ($exam->show_result_to_student)
                         <p class="text-5xl font-black text-primary-600">{{ $stats['score'] }}</p>
 
                         <p class="text-[10px] text-gray-400 mt-4 font-medium uppercase tracking-widest">
