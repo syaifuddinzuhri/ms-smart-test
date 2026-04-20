@@ -41,12 +41,15 @@ trait HasMonitoringActions
                 ])
                 ->action(fn(\Illuminate\Support\Collection $records, array $data) => static::processBulkAddDuration($records, $data)),
 
-            // 2. Bulk Paksa Selesai
+            // 2. Bulk Hentikan Ujian
             BulkAction::make('bulkForceSubmit')
-                ->label('Paksa Selesai (Massal)')
+                ->label('Hentikan Ujian (Massal)')
                 ->icon('heroicon-m-stop-circle')
                 ->color('danger')
                 ->requiresConfirmation()
+                ->modalHeading('Hentikan Ujian Sesi Terpilih?')
+                ->modalDescription('Tindakan ini akan menghentikan sesi ujian peserta secara paksa. Semua jawaban yang ditandai sebagai "Ragu-ragu" namun sudah terisi akan otomatis dianggap sebagai jawaban final dan ikut dalam perhitungan skor.')
+                ->modalSubmitActionLabel('Ya, Hentikan Ujian')
                 ->action(fn(\Illuminate\Support\Collection $records) => static::processBulkForceSubmit($records)),
 
             // 3. Bulk Jeda
@@ -172,7 +175,7 @@ trait HasMonitoringActions
         ");
 
         Notification::make()
-            ->title('Proses Paksa Selesai Selesai')
+            ->title('Proses Hentikan Ujian Selesai')
             ->body($message)
             ->color($failedCount > 0 ? 'warning' : 'success')
             ->icon($failedCount > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
@@ -249,13 +252,14 @@ trait HasMonitoringActions
     protected static function getForceSubmitAction(): Action
     {
         return Action::make('forceSubmit')
-            ->label('Paksa Selesai')
+            ->label('Hentikan Ujian')
             ->icon('heroicon-m-stop-circle')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Paksa Selesaikan Ujian?')
-            ->modalDescription('Peserta akan dianggap sudah mengumpulkan ujian saat ini juga.')
-            ->action(fn(ExamSession $record) => static::processForceSubmit($record));
+            ->modalHeading('Hentikan Ujian?')
+            ->modalDescription('Tindakan ini akan menghentikan sesi ujian peserta secara paksa. Semua jawaban yang ditandai sebagai "Ragu-ragu" namun sudah terisi akan otomatis dianggap sebagai jawaban final dan ikut dalam perhitungan skor.')
+            ->action(fn(ExamSession $record) => static::processForceSubmit($record))
+            ->visible(fn(ExamSession $record) => $record->status !== ExamSessionStatus::COMPLETED);
     }
 
     protected static function getResetAnswersAction(): Action
@@ -277,7 +281,8 @@ trait HasMonitoringActions
             ->icon('heroicon-m-pause')
             ->color('info')
             ->requiresConfirmation()
-            ->action(fn(ExamSession $record) => static::processPauseSession($record));
+            ->action(fn(ExamSession $record) => static::processPauseSession($record))
+            ->visible(fn(ExamSession $record) => $record->status !== ExamSessionStatus::COMPLETED);
     }
 
     protected static function getViewViolationsAction(): Action
@@ -410,7 +415,7 @@ trait HasMonitoringActions
             });
 
             Notification::make()
-                ->title('Peserta berhasil dipaksa selesai')
+                ->title('Peserta berhasil diHentikan Ujian')
                 ->body('Jawaban berhasil disimpan dan hasil didapatkan.')
                 ->success()
                 ->send();

@@ -104,7 +104,7 @@ class ExamService
             if ($targetMaxScore) {
                 // Jika ada normalisasi, kita hitung selisih proporsionalnya
                 $maxRaw = $this->getMaxPossibleRawScore($exam);
-                $normalizedDiff = ($diff / $maxRaw) * $targetMaxScore;
+                $normalizedDiff = $maxRaw > 0 ? ($diff / $maxRaw) * $targetMaxScore : 0;
                 $session->increment('total_score', $normalizedDiff);
             } else {
                 // Jika tidak ada normalisasi, tambah mentah-mentah
@@ -206,6 +206,39 @@ class ExamService
         foreach ($questions as $q) {
             $answer = $answers->get($q->id);
 
+            /**
+             * Logika Penentuan Jawaban Kosong:
+             * 1. Benar-benar tidak ada data answer.
+             * 2. Ada data answer, tapi is_doubtful DAN tidak sedang forceSubmit.
+             * 3. (Opsional) Jika forceSubmit tapi answer memang kosong (null/string kosong), tetap dianggap null point.
+             */
+            $isAnswerMissing = !$answer || $answer->is_doubtful;
+
+            // Cek tambahan jika forceSubmit tapi isinya memang kosong
+            if ($answer && $answer->is_doubtful) {
+                /**
+                 * Memastikan konten jawaban benar-benar ada.
+                 * - empty($answer->answer_text) untuk tipe Isian/Essay.
+                 * - ! $answer->options()->exists() untuk tipe Pilihan Ganda.
+                 */
+                $isPhysicallyEmpty = empty($answer->answer_text) && !$answer->options()->exists();
+
+                if ($isPhysicallyEmpty) {
+                    $isAnswerMissing = true;
+                }
+            }
+
+            if ($isAnswerMissing) {
+                // Point Null
+                if ($q->isPg())
+                    $totalPg += $exam->point_pg_null;
+                if ($q->isShortAnswer())
+                    $totalShort += $exam->point_short_answer_null;
+                if ($q->isEssay())
+                    $totalEssay += $exam->point_essay_null;
+                continue;
+            }
+
             if (!$answer) {
                 // Point Null
                 if ($q->isPg())
@@ -231,7 +264,7 @@ class ExamService
 
         if ($targetMaxScore) {
             $maxRaw = $this->getMaxPossibleRawScore($exam);
-            $finalTotal = ($rawTotal / $maxRaw) * $targetMaxScore;
+            $finalTotal = $maxRaw > 0 ? ($rawTotal / $maxRaw) * $targetMaxScore : 0;
         }
 
         $session->update([
