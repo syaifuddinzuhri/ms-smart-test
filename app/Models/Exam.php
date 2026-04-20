@@ -19,9 +19,7 @@ class Exam extends Model
         'status' => ExamStatus::class,
         'start_time' => 'datetime',
         'end_time' => 'datetime',
-        'can_resume' => 'boolean',
         'target_max_score' => 'integer',
-        'is_graded' => 'boolean',
         'show_result_to_student' => 'boolean',
         'extension_log' => 'array',
     ];
