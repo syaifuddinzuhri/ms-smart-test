@@ -32,6 +32,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
+use Closure;
 
 class ExamResource extends Resource
 {
@@ -149,28 +150,112 @@ class ExamResource extends Resource
                             ->schema([
                                 Grid::make(3)
                                     ->schema([
+                                        // --- SEKSI PILIHAN GANDA ---
                                         Section::make('Pilihan Ganda')
                                             ->schema([
-                                                TextInput::make('point_pg')->label('Poin Benar')->numeric()->default(1),
-                                                TextInput::make('point_pg_wrong')->label('Poin Salah')->numeric()->default(0)->helperText('Poin pinalti yang akan mengurangi total skor jika soal tidak dijawab.')
-                                                    ->prefix('-'),
-                                                TextInput::make('point_pg_null')->label('Poin Kosong')->numeric()->default(0)->helperText('Poin pinalti yang akan mengurangi total skor jika soal tidak dijawab.')
-                                                    ->prefix('-'),
+                                                TextInput::make('point_pg')
+                                                    ->label('Poin Benar')
+                                                    ->numeric()
+                                                    ->default(1)
+                                                    ->minValue(0)
+                                                    ->lazy(), // Mengupdate state saat kursor pindah (lebih ringan dari reactive)
+
+                                                TextInput::make('point_pg_wrong')
+                                                    ->label('Poin Salah')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->prefix('-')
+                                                    ->helperText('Pinalti jika jawaban salah.')
+                                                    ->rules([
+                                                        fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                                            $poinBenar = (float) $get('point_pg');
+                                                            if ((float) $value > $poinBenar) {
+                                                                $fail("Pinalti tidak boleh melebihi poin benar ({$poinBenar})");
+                                                            }
+                                                        },
+                                                    ]),
+
+                                                TextInput::make('point_pg_null')
+                                                    ->label('Poin Kosong')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->prefix('-')
+                                                    ->helperText('Pinalti jika tidak dijawab.')
+                                                    ->rules([
+                                                        fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                                            $poinBenar = (float) $get('point_pg');
+                                                            if ((float) $value > $poinBenar) {
+                                                                $fail("Pinalti tidak boleh melebihi poin benar ({$poinBenar})");
+                                                            }
+                                                        },
+                                                    ]),
                                             ])->columnSpan(1),
+
+                                        // --- SEKSI JAWABAN SINGKAT ---
                                         Section::make('Jawaban Singkat')
                                             ->schema([
-                                                TextInput::make('point_short_answer')->label('Poin Benar')->numeric()->default(1),
-                                                TextInput::make('point_short_answer_wrong')->label('Poin Salah')->numeric()->default(0)->helperText('Poin pinalti yang akan mengurangi total skor jika soal tidak dijawab.')
-                                                    ->prefix('-'),
-                                                TextInput::make('point_short_answer_null')->label('Poin Kosong')->numeric()->default(0)->helperText('Poin pinalti yang akan mengurangi total skor jika soal tidak dijawab.')
-                                                    ->prefix('-'),
+                                                TextInput::make('point_short_answer')
+                                                    ->label('Poin Benar')
+                                                    ->numeric()
+                                                    ->default(1)
+                                                    ->minValue(0)
+                                                    ->lazy(),
+
+                                                TextInput::make('point_short_answer_wrong')
+                                                    ->label('Poin Salah')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->prefix('-')
+                                                    ->helperText('Pinalti jika jawaban salah.')
+                                                    ->rules([
+                                                        fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                                            $poinBenar = (float) $get('point_short_answer');
+                                                            if ((float) $value > $poinBenar) {
+                                                                $fail("Pinalti tidak boleh melebihi poin benar ({$poinBenar})");
+                                                            }
+                                                        },
+                                                    ]),
+
+                                                TextInput::make('point_short_answer_null')
+                                                    ->label('Poin Kosong')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->prefix('-')
+                                                    ->helperText('Pinalti jika tidak dijawab.')
+                                                    ->rules([
+                                                        fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                                            $poinBenar = (float) $get('point_short_answer');
+                                                            if ((float) $value > $poinBenar) {
+                                                                $fail("Pinalti tidak boleh melebihi poin benar ({$poinBenar})");
+                                                            }
+                                                        },
+                                                    ]),
                                             ])->columnSpan(1),
+
+                                        // --- SEKSI ESSAY ---
                                         Section::make('Essay')
                                             ->schema([
-                                                TextInput::make('point_essay_max')->label('Poin Maksimal')->numeric()->default(10)->helperText('Poin pinalti yang akan mengurangi total skor jika soal tidak dijawab.')
-                                                    ->prefix('-'),
-                                                TextInput::make('point_essay_null')->label('Poin Kosong')->numeric()->default(0)->helperText('Poin pinalti yang akan mengurangi total skor jika soal tidak dijawab.')
-                                                    ->prefix('-'),
+                                                TextInput::make('point_essay_max')
+                                                    ->label('Poin Maksimal')
+                                                    ->numeric()
+                                                    ->default(10)
+                                                    ->minValue(1)
+                                                    ->lazy(),
+
+                                                TextInput::make('point_essay_null')
+                                                    ->label('Poin Kosong')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->prefix('-')
+                                                    ->helperText('Pinalti jika tidak dijawab.')
+                                                    ->rules([
+                                                        fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                                            $poinMax = (float) $get('point_essay_max');
+                                                            if ((float) $value > $poinMax) {
+                                                                $fail("Pinalti tidak boleh melebihi poin maksimal ({$poinMax})");
+                                                            }
+                                                        },
+                                                    ]),
                                             ])->columnSpan(1),
                                     ]),
                             ]),
@@ -205,11 +290,15 @@ class ExamResource extends Resource
                                                     ->label('Tampilkan Nilai ke Peserta')
                                                     ->helperText('Peserta dapat melihat skor akhir setelah mereka menyelesaikan ujian.')
                                                     ->default(false),
-                                                TextInput::make('target_max_score')->label('Maksimal Skor Akhir')
+                                                TextInput::make('target_max_score')
+                                                    ->label('Skala Skor Akhir')
                                                     ->numeric()
                                                     ->default(100)
-                                                    ->minValue(100)
-                                                    ->helperText('Total poin yang didapat siswa akan dikonversi secara proporsional ke skala ini (misal: 100). Kosongkan jika ingin menggunakan skor mentah.')
+                                                    ->nullable() // Mengizinkan field dikosongkan (null)
+                                                    ->minValue(100) // Jika diisi, minimal 100
+                                                    ->maxValue(1000) // Jika diisi, maksimal 1000
+                                                    ->placeholder('Contoh: 100') // Memberi petunjuk visual
+                                                    ->helperText('Kosongkan jika ingin menggunakan poin akumulasi mentah. Jika diisi (min: 100, max: 1000), nilai akhir akan dikonversi otomatis ke skala ini (misal: Skala 100).')
                                             ])->columnSpan(1),
                                     ]),
                             ]),

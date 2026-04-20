@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ExamResource\Pages;
 
 use App\Filament\Resources\ExamResource;
 use App\Models\ExamClassroom;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
@@ -71,5 +72,20 @@ class CreateExam extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('help_scoring')
+                ->label('Panduan Skema Poin')
+                ->icon('heroicon-m-information-circle')
+                ->color('info') // Warna biru
+                ->modalHeading('Simulasi Perhitungan Poin & Pinalti')
+                ->modalWidth('4xl')
+                ->modalSubmitAction(false) // Hilangkan tombol submit modal
+                ->modalCancelActionLabel('Tutup')
+                ->modalContent(view('filament.pages.exam-scoring-help')), // Panggil file blade tadi
+        ];
     }
 }
