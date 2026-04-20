@@ -50,21 +50,6 @@
                                 {{ $navItem['number'] }}
                             </a>
                         @endforeach
-                        @foreach ($results as $navItem)
-                            @php
-                            @endphp
-                            <a href="#question-{{ $navItem['number'] }}" @class([
-                                'flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl font-bold text-[11px] sm:text-xs transition-all border-2',
-                                'bg-green-500 border-green-400 text-white shadow-sm shadow-green-100' =>
-                                    $navItem['is_correct'] === 1,
-                                'bg-red-500 border-red-400 text-white shadow-sm shadow-red-100' =>
-                                    $navItem['is_correct'] === 0,
-                                'bg-orange-500 border-orange-400 text-white shadow-sm shadow-orange-100' => is_null(
-                                    $navItem['is_correct']),
-                            ])>
-                                {{ $navItem['number'] }}
-                            </a>
-                        @endforeach
                     </div>
                 </div>
 

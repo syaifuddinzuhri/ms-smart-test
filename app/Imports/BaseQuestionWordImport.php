@@ -84,7 +84,8 @@ abstract class BaseQuestionWordImport
 
         $tempFile = storage_path('app/temp_' . Str::random(10) . '.html');
         $command = sprintf(
-            '%s %s -f docx -t html --standalone --extract-media=%s -o %s 2>&1',
+            '%s %s -f docx -t html --mathjax --standalone --extract-media=%s -o %s 2>&1',
+            // '%s %s -f docx -t html --standalone --extract-media=%s -o %s 2>&1',
             $pandoc,
             escapeshellarg($filePath),
             escapeshellarg($this->tempMediaPath),
@@ -140,11 +141,59 @@ abstract class BaseQuestionWordImport
         return $tableData;
     }
 
+    protected function convertHtmlMathToLatex($html)
+    {
+        if (empty($html))
+            return "";
+
+        // 1. Map simbol ke format LaTeX (Selalu aman)
+        $symbols = [
+            'π' => '\pi',
+            '±' => '\pm',
+            '√' => '\sqrt',
+            '∞' => '\infty',
+            '×' => '\times',
+            '÷' => '\div',
+            '≤' => '\le',
+            '≥' => '\ge',
+            '≠' => '\ne'
+        ];
+        $html = strtr($html, $symbols);
+
+        // 2. Identifikasi apakah string ini SUDAH mengandung LaTeX (pembungkus $ atau \( atau \[)
+        // Kita bersihkan dulu delimiter pandoc ke standar $ agar deteksi mudah
+        $tempCheck = $this->cleanLatex($html);
+        $isAlreadyLatex = str_contains($tempCheck, '$');
+
+        // 3. Konversi <sup> dan <sub>
+        $html = preg_replace_callback('/<(sup|sub)>(.*?)<\/\1>/i', function ($m) use ($isAlreadyLatex) {
+            $tag = strtolower($m[1]);
+            $content = strip_tags($m[2]);
+            $latexNotation = ($tag === 'sup') ? "^{$content}" : "_{$content}";
+
+            // JIKA sudah ada pembungkus LaTeX di string utama, JANGAN tambahkan $ lagi
+            return $isAlreadyLatex ? $latexNotation : '$' . $latexNotation . '$';
+        }, $html);
+
+        // 4. Deteksi teks manual yang punya pangkat/bawah (misal: x^2) tapi bukan LaTeX
+        // Kita hanya bungkus jika string utama benar-benar murni teks (bukan latex pandoc)
+        if (!$isAlreadyLatex) {
+            $html = preg_replace_callback('/([a-zA-Z0-9](\^|_)(\{[^}]+\}|[a-zA-Z0-9]+))/', function ($m) {
+                return '$' . $m[1] . '$';
+            }, $html);
+        }
+
+        return $html;
+    }
+
     protected function finalizeHtml($html)
     {
         if (empty($html))
             return "";
         $html = html_entity_decode($html);
+        $html = $this->cleanLatex($html);
+        $html = $this->convertHtmlMathToLatex($html);
+
         $html = preg_replace('/<table[^>]*>.*?<\/table>/is', '', $html);
         $allowedTags = '<span><strong><em><u><s><ul><ol><li><p><br><i><b><mark><sub><sup><math><img><div>';
         return trim($this->cleanLatex(strip_tags($html, $allowedTags)));
@@ -209,8 +258,20 @@ abstract class BaseQuestionWordImport
 
     protected function cleanLatex($text)
     {
-        $text = preg_replace('/\\\\\((.*?)\\\\\)/s', '$$1$', $text);
-        return preg_replace('/\\\\\[(.*?)\\\\\d*\]/s', '$$$$1$$', $text);
+        if (empty($text))
+            return "";
+
+        // A. Standarisasi Delimiter Pandoc ke format LaTeX
+        // \[ ... \] ke $$ ... $$
+        $text = preg_replace('/\\\\\[\s*(.*?)\s*\\\\\]/s', '$$$$1$$', $text);
+        // \( ... \) ke $ ... $
+        $text = preg_replace('/\\\\\(\s*(.*?)\s*\\\\\)/s', '$$1$', $text);
+
+        // B. Perbaikan Double/Triple Dollar yang tidak sengaja
+        // Jika ada $$$ atau lebih, kembalikan ke $$ (Block Mode)
+        $text = preg_replace('/\${3,}/', '$$', $text);
+
+        return $text;
     }
 
     protected function checkAttachment($nomorSoal)

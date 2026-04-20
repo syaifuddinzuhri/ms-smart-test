@@ -9,6 +9,7 @@ use App\Models\ExamAnswer;
 use App\Models\ExamClassroom;
 use App\Models\ExamQuestion;
 use App\Models\ExamSession;
+use App\Services\ExamService;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
@@ -89,98 +90,8 @@ class DetailResultTest extends Page
             'is_passed' => is_null($passingGrade) || ($this->session->total_score >= $passingGrade),
         ];
 
-        $this->getQuestions();
+        $this->results = app(ExamService::class)->getQuestions($this->exam, $this->session);
 
-    }
-
-    private function getQuestions()
-    {
-        $qSeed = match ((int) $this->exam->random_question_type) {
-            1 => $this->session->question_seed,
-            2 => crc32($this->exam->id),
-            default => null,
-        };
-
-        $examQuestions = ExamQuestion::query()
-            ->where('exam_id', $this->exam->id)
-            ->with([
-                'question.options' => function ($query) {
-                    if ($this->exam->random_option_type) {
-                        $query->inRandomOrder($this->session->option_seed);
-                    } else {
-                        $query->orderBy('order', 'asc');
-                    }
-                }
-            ])
-            ->when(
-                $qSeed,
-                fn($q) => $q->inRandomOrder($qSeed),
-                fn($q) => $q->orderBy('order', 'asc')
-            )
-            ->get();
-
-        $answers = ExamAnswer::where('exam_session_id', $this->session->id)
-            ->with('selectedOptions')
-            ->get()
-            ->keyBy('question_id');
-
-        foreach ($examQuestions as $index => $eq) {
-            $question = $eq->question;
-            $studentAnswer = $answers->get($question->id);
-
-            // 1. Menggunakan match(true) dengan helper model
-            $uiType = match (true) {
-                $question->isSingleChoice() => 'Pilihan Ganda (Satu Jawaban)',
-                $question->isMultipleChoice() => 'Pilihan Ganda (Multi Jawaban)',
-                $question->isTrueFalse() => 'Pilihan Ganda (Benar Salah)',
-                $question->isShortAnswer() => 'Jawaban Singkat',
-                $question->isEssay() => 'Essay',
-                default => '-'
-            };
-
-            $formattedOptions = [];
-            // Tentukan apakah ini multiple choice murni untuk logic array jawaban
-            $isMultipleChoice = $question->question_type === QuestionType::MULTIPLE_CHOICE;
-            $examAnswerKey = $isMultipleChoice ? [] : null;
-
-            $letters = range('a', 'z');
-
-            // 2. Gunakan helper untuk menentukan apakah butuh mapping opsi
-            if ($question->isPg()) {
-                foreach ($question->options as $optIndex => $option) {
-                    $char = $letters[$optIndex];
-                    $formattedOptions[$char] = $option->text;
-
-                    $isPicked = $studentAnswer && $studentAnswer->selectedOptions->contains('id', $option->id);
-
-                    if ($isPicked) {
-                        if ($isMultipleChoice) {
-                            $examAnswerKey[] = $char;
-                        } else {
-                            $examAnswerKey = $char;
-                        }
-                    }
-                }
-            } else {
-                // Untuk Essay atau Short Answer
-                $examAnswerKey = $studentAnswer->answer_text ?? null;
-            }
-
-            $this->results[] = [
-                'number' => $index + 1,
-                'is_correct' => $studentAnswer->is_correct,
-                'type_label' => $uiType,
-                'type' => $question->question_type,
-                'is_pg' => $question->isPg(),
-                'is_essay' => $question->isEssay(),
-                'is_multiple' => $question->isMultipleChoice(),
-                'is_short' => $question->isShortAnswer(),
-                'question' => $question->question_text,
-                'options' => $formattedOptions,
-                'answer' => $examAnswerKey,
-                'score' => number_format($studentAnswer->score ?? 0, 2),
-            ];
-        }
     }
 
     public function getTitle(): string|Htmlable

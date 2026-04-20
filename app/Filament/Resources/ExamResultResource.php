@@ -8,7 +8,9 @@ use App\Models\Classroom;
 use App\Models\ExamCategory;
 use App\Models\ExamClassroom;
 use App\Models\ExamSession;
-use App\Models\Subject;
+use App\Services\ExamService;
+use ArPHP\I18N\Arabic;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Support\Str;
 
 class ExamResultResource extends Resource
 {
@@ -154,6 +157,13 @@ class ExamResultResource extends Resource
     {
         return $infolist
             ->schema([
+                Infolists\Components\Actions::make([
+                    Infolists\Components\Actions\Action::make('exportPdf')
+                        ->label('Download PDF')
+                        ->icon('heroicon-m-arrow-down-tray')
+                        ->color('danger')
+                        ->action(fn($record) => self::exportPdf($record)),
+                ])->columnSpanFull()->alignRight(),
                 Infolists\Components\Tabs::make('Detail Hasil Ujian')
                     ->tabs([
                         Infolists\Components\Tabs\Tab::make('Informasi Ujian')
@@ -176,6 +186,7 @@ class ExamResultResource extends Resource
 
                                 Infolists\Components\Section::make('Rincian Nilai')
                                     ->schema([
+                                        // Baris 1: Detail per jenis soal
                                         Infolists\Components\TextEntry::make('score_pg')
                                             ->label('Pilihan Ganda')
                                             ->weight(FontWeight::Bold),
@@ -185,7 +196,25 @@ class ExamResultResource extends Resource
                                         Infolists\Components\TextEntry::make('score_essay')
                                             ->label('Essay')
                                             ->weight(FontWeight::Bold),
-                                        // Skor Akhir dengan Warna Dinamis
+
+                                        // Baris 2: Informasi Ambang Batas & Skor Maksimal
+                                        Infolists\Components\TextEntry::make('min_score')
+                                            ->label('KKM (Min. Skor)')
+                                            ->getStateUsing(function ($record) {
+                                                return ExamClassroom::where('exam_id', $record->exam_id)
+                                                    ->where('classroom_id', $record->user->student?->classroom_id)
+                                                    ->value('min_total_score') ?? '-';
+                                            })
+                                            ->color('gray')
+                                            ->weight(FontWeight::Bold),
+
+                                        Infolists\Components\TextEntry::make('exam.target_max_score')
+                                            ->label('Skor Maksimal')
+                                            ->color('gray')
+                                            ->placeholder('-')
+                                            ->weight(FontWeight::Bold),
+
+                                        // Baris 3: Hasil Akhir & Status (Diberi Highlight)
                                         Infolists\Components\TextEntry::make('total_score')
                                             ->label('Skor Akhir')
                                             ->weight(FontWeight::Bold)
@@ -200,7 +229,6 @@ class ExamResultResource extends Resource
                                                     : 'danger';
                                             }),
 
-                                        // Badge Status Kelulusan
                                         Infolists\Components\TextEntry::make('status_kelulusan')
                                             ->label('Status')
                                             ->getStateUsing(function ($record) {
@@ -217,9 +245,9 @@ class ExamResultResource extends Resource
                                                 'LULUS' => 'success',
                                                 'TIDAK LULUS' => 'danger',
                                                 default => 'gray',
-                                            }),
-                                    ])->columns(5),
-
+                                            })
+                                            ->weight(FontWeight::Bold)
+                                    ])->columns(4), // Menggunakan 4 kolom agar tata letak lebih rapi (akan wrap otomatis)
                                 Infolists\Components\Section::make('Waktu & Aktivitas')
                                     ->schema([
                                         Infolists\Components\TextEntry::make('started_at')->label('Waktu Mulai')->dateTime('d/m/Y, H:i:s T'),
@@ -249,6 +277,163 @@ class ExamResultResource extends Resource
                             ])
                     ])->columnSpanFull(),
             ]);
+    }
+
+    public static function exportPdf($record)
+    {
+        $exam = $record->exam;
+        $session = $record;
+
+        $passingGrade = ExamClassroom::where('exam_id', $exam->id)
+            ->where('classroom_id', $record->user->student?->classroom_id)
+            ->value('min_total_score') ?? 0;
+
+        $isPassed = $record->total_score >= $passingGrade;
+
+        $results = app(ExamService::class)->getQuestions($exam, $session);
+
+
+        $imagePath = public_path('images/logo.webp');
+        $logoBase64 = '';
+
+        if (file_exists($imagePath)) {
+            $type = pathinfo($imagePath, PATHINFO_EXTENSION);
+            $data = file_get_contents($imagePath);
+            $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+        }
+
+
+        // Fungsi untuk mengubah LaTeX menjadi tag IMG (CodeCogs)
+        $convertLatex = function ($text) {
+            if (empty($text))
+                return $text;
+            // Gunakan http (bukan https) untuk menghindari masalah SSL DomPDF
+            return preg_replace_callback('/(\$\$|\$)(.*?)(\$\$|\$)/s', function ($match) {
+                $tex = rawurlencode(trim($match[2]));
+                return "<img class='latex-img' src='http://latex.codecogs.com/png.latex?\huge&space;{$tex}' style='vertical-align:middle;'>";
+            }, $text);
+        };
+
+        $processHtml = function ($text) use ($convertLatex) {
+            if (empty($text))
+                return $text;
+
+            $text = preg_replace_callback('/<img[^>]+src=["\']([^"\']+)["\']/', function ($match) {
+                $src = $match[1];
+
+                // Jika src adalah path relatif /storage/..., ubah ke path fisik
+                if (str_starts_with($src, '/storage/')) {
+                    $path = public_path($src);
+                } else {
+                    $path = $src; // Gunakan path yang sudah absolut
+                }
+
+                // Jika file fisik ada, ubah ke Base64
+                if (file_exists($path)) {
+                    $type = pathinfo($path, PATHINFO_EXTENSION);
+                    $data = file_get_contents($path);
+                    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                    return str_replace($src, $base64, $match[0]);
+                }
+
+                return $match[0]; // Jika file tidak ada, biarkan apa adanya
+            }, $text);
+
+            return $convertLatex($text);
+        };
+
+
+        $numToAlpha = function ($n) {
+            $r = '';
+            for ($n += 1; $n > 0; $n = intval(($n - 1) / 26)) {
+                $r = chr(65 + ($n - 1) % 26) . $r;
+            }
+            return $r;
+        };
+        // Proses semua konten (Soal, Opsi, dan Jawaban)
+        $arabic = new Arabic();
+
+        $finalProcessor = function ($text) use ($arabic, $processHtml, $numToAlpha) {
+            if (empty($text))
+                return $text;
+
+            // STEP A: Jalankan proses HTML & LaTeX terlebih dahulu
+            // Sekarang $text berisi tag <img src="..."> untuk gambar dan LaTeX
+            $textWithTags = $processHtml($text);
+
+            // STEP B: Proteksi Tag HTML agar tidak dirusak oleh Ar-PHP
+            $placeholders = [];
+            $protectedText = preg_replace_callback('/<[^>]+>/', function ($matches) use (&$placeholders, $numToAlpha) {
+                // Kita gunakan prefix 'PROTECTED' + Huruf (A, B, C...)
+                $id = 'PROTECTED' . $numToAlpha(count($placeholders));
+                $placeholders[$id] = $matches[0];
+                return $id;
+            }, $textWithTags);
+
+            // STEP C: Jalankan Arabic Shaping HANYA pada teks yang tersisa
+            // Ar-PHP tidak akan menyentuh [[TAG_0]], [[TAG_1]], dst.
+            $shapedText = $arabic->utf8Glyphs($protectedText);
+
+            // STEP D: Kembalikan tag asli ke posisinya
+            $finalHtml = strtr($shapedText, $placeholders);
+
+            // STEP E: Deteksi Karakter Arab dan bungkus dengan class .arabic-font (seperti sebelumnya)
+            return preg_replace_callback('/([\x{0600}-\x{06FF}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]+)/u', function ($matches) {
+                return '<span class="arabic-font">' . $matches[1] . '</span>';
+            }, $finalHtml);
+        };
+
+        foreach ($results as &$item) {
+            $item['question'] = $finalProcessor($item['question']);
+
+            if (!empty($item['options'])) {
+                foreach ($item['options'] as $key => $option) {
+                    $item['options'][$key] = $finalProcessor($option);
+                }
+            }
+        }
+
+        $start = Carbon::parse($record->started_at);
+        $end = Carbon::parse($record->finished_at);
+
+        // Pastikan folder cache font ada
+        $fontCachePath = storage_path('fonts');
+        if (!file_exists($fontCachePath)) {
+            mkdir($fontCachePath, 0775, true);
+        }
+
+        // Hasilnya harus TRUE
+        $pdf = Pdf::loadView('pdf.exam-result', [
+            'record' => $record,
+            'session' => $session,
+            'exam' => $exam,
+            'results' => $results,
+            'passingGrade' => $passingGrade,
+            'isPassed' => $isPassed,
+            'duration' => $start->diff($end)->format('%H:%I:%S'),
+            'logo' => $logoBase64,
+        ])->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'Amiri',
+                'fontDir' => public_path('fonts'),
+                'fontCache' => $fontCachePath,
+                'chroot' => [
+                    public_path('fonts'),
+                    base_path(),
+                ],
+            ]);
+
+        // Gabungkan teks yang ingin dijadikan nama file
+        $fileNameString = "hasil ujian {$exam->title} {$record->user->name}";
+
+        // Ubah menjadi slug (lowercase & mengganti spasi/karakter khusus dengan tanda -)
+        $cleanFileName = Str::slug($fileNameString) . '.pdf';
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $cleanFileName);
     }
 
     public static function getPages(): array
