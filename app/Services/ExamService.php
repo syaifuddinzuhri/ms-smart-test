@@ -261,19 +261,29 @@ class ExamService
         ]);
     }
 
-    public function getQuestions(Exam $exam, ExamSession $session)
+    public function getQuestions(Exam $exam, ExamSession $session, bool $isOrdered = true)
     {
-        $qSeed = match ((int) $exam->random_question_type) {
-            1 => $session->question_seed,
-            2 => crc32($exam->id),
-            default => null,
-        };
+        $results = [];
 
-        $result = [];
+        // 1. Ambil Jawaban Siswa terlebih dahulu
+        $answers = ExamAnswer::where('exam_session_id', $session->id)
+            ->with('selectedOptions')
+            ->get()
+            ->keyBy('question_id');
 
-        $examQuestions = ExamQuestion::query()
-            ->where('exam_id', $exam->id)
-            ->with([
+        // 2. Tentukan Query Dasar
+        $query = ExamQuestion::query()
+            ->where('exam_id', $exam->id);
+
+        if ($isOrdered) {
+            // --- LOGIKA JIKA URUT/ACAK (Standard Ujian) ---
+            $qSeed = match ((int) $exam->random_question_type) {
+                1 => $session->question_seed,
+                2 => crc32($exam->id),
+                default => null,
+            };
+
+            $examQuestions = $query->with([
                 'question.options' => function ($query) use ($exam, $session) {
                     if ($exam->random_option_type) {
                         $query->inRandomOrder($session->option_seed);
@@ -282,17 +292,40 @@ class ExamService
                     }
                 }
             ])
-            ->when(
-                $qSeed,
-                fn($q) => $q->inRandomOrder($qSeed),
-                fn($q) => $q->orderBy('order', 'asc')
-            )
-            ->get();
+                ->when(
+                    $qSeed,
+                    fn($q) => $q->inRandomOrder($qSeed),
+                    fn($q) => $q->orderBy('order', 'asc')
+                )
+                ->get();
+        } else {
+            // --- LOGIKA JIKA TIDAK URUT (Grouping Berdasarkan Tipe) ---
+            // Join ke tabel questions untuk mendapatkan question_type agar bisa diurutkan
+            $examQuestions = $query->join('questions', 'exam_questions.question_id', '=', 'questions.id')
+                ->select('exam_questions.*', 'questions.question_type')
+                ->with(['question.options' => fn($q) => $q->orderBy('order', 'asc')])
+                ->get()
+                ->sort(function ($a, $b) {
+                    // Tentukan hirarki prioritas
+                    $priority = [
+                        QuestionType::SINGLE_CHOICE->value => 1,
+                        QuestionType::MULTIPLE_CHOICE->value => 1,
+                        QuestionType::TRUE_FALSE->value => 1,
+                        QuestionType::SHORT_ANSWER->value => 2,
+                        QuestionType::ESSAY->value => 3,
+                    ];
 
-        $answers = ExamAnswer::where('exam_session_id', $session->id)
-            ->with('selectedOptions')
-            ->get()
-            ->keyBy('question_id');
+                    $prioA = $priority[$a->question_type->value] ?? 4;
+                    $prioB = $priority[$b->question_type->value] ?? 4;
+
+                    if ($prioA === $prioB) {
+                        // Jika tipe sama, urutkan berdasarkan waktu buat atau ID agar konsisten
+                        return $a->created_at <=> $b->created_at;
+                    }
+
+                    return $prioA <=> $prioB;
+                });
+        }
 
         foreach ($examQuestions as $index => $eq) {
             $question = $eq->question;

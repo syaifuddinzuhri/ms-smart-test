@@ -90,7 +90,7 @@ class DetailResultTest extends Page
             'is_passed' => is_null($passingGrade) || ($this->session->total_score >= $passingGrade),
         ];
 
-        $this->results = app(ExamService::class)->getQuestions($this->exam, $this->session);
+        $this->results = app(ExamService::class)->getQuestions($this->exam, $this->session, false);
 
     }
 

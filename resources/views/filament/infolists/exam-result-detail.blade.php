@@ -8,7 +8,7 @@
         ->first();
 
     $questions = $exam->questions()->get();
-    $results = app(\App\Services\ExamService::class)->getQuestions($exam, $session);
+    $results = app(\App\Services\ExamService::class)->getQuestions($exam, $session, false);
 
     $submittedAnswersCount = \App\Models\ExamAnswer::where('exam_session_id', $session->id)->count();
 
@@ -77,7 +77,7 @@
         </div>
     </div>
     <div class="space-y-6">
-        @foreach ($results as $item)
+        @foreach ($results as $index => $item)
             <div id="question-{{ $item['number'] }}" @class([
                 'p-6 pt-10 rounded-3xl border-2 transition-all bg-white relative overflow-hidden md:scroll-mt-[220px] scroll-mt-[240px]',
                 'border-gray-200 shadow-[0_10px_30px_-15px_rgba(34,197,94,0.1)]' => !$item[
@@ -100,7 +100,7 @@
                     'bg-yellow-500 text-white' =>
                         is_null($item['is_correct']) && $item['has_answer'],
                 ])>
-                    SOAL #{{ $item['number'] }}
+                    SOAL #{{ $index + 1 }}
                 </div>
                 <div @class([
                     'absolute top-0 right-0 px-4 py-2 md:px-5 md:py-3 rounded-bl-2xl bg-gray-100 text-center leading-none max-w-[220px] md:max-w-none',

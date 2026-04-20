@@ -284,7 +284,7 @@
                 </div>
             </div>
 
-            @foreach ($results as $item)
+            @foreach ($results as $index => $item)
                 <div id="question-{{ $item['number'] }}" @class([
                     'p-6 pt-10 rounded-3xl border-2 transition-all bg-white relative overflow-hidden md:scroll-mt-[160px] scroll-mt-[230px]', // Tambah pt-10 untuk ruang nomor
                     'border-gray-200 shadow-[0_10px_30px_-15px_rgba(34,197,94,0.1)]',
@@ -306,7 +306,7 @@
                         // 'bg-orange-500 text-white' =>
                         //     $exam->show_result_to_student && is_null($item['is_correct']),
                     ])>
-                        SOAL #{{ $item['number'] }}
+                        SOAL #{{ $index + 1 }}
                     </div>
                     <div @class([
                         'absolute top-0 right-0 px-4 py-2 md:px-5 md:py-3 rounded-bl-2xl bg-gray-100 text-center leading-none max-w-[220px] md:max-w-none',
@@ -355,10 +355,8 @@
                                     <div @class([
                                         'flex items-center gap-3 p-4 rounded-2xl border-2 transition-all',
                                         // ❌ belum boleh lihat hasil
-                                        'bg-gray-50 border-gray-200 text-gray-500 opacity-60' =>
-                                            !$isSelected,
-                                        'bg-gray-50 border-gray-200 text-gray-700 ring-2 ring-gray-100' =>
-                                            $isSelected,
+                                        'bg-gray-50 border-gray-200 text-gray-500 opacity-60' => !$isSelected,
+                                        'bg-gray-50 border-gray-200 text-gray-700 ring-2 ring-gray-100' => $isSelected,
 
                                         // ✅ sudah boleh lihat hasil
                                         // 'bg-gray-50 border-gray-100 text-gray-500 opacity-60' =>
@@ -374,8 +372,7 @@
                                             'bg-white border-gray-200' => !$isSelected,
 
                                             // ❌ belum show result → biru
-                                            'bg-gray-500 border-gray-500 text-white' =>
-                                                $isSelected,
+                                            'bg-gray-500 border-gray-500 text-white' => $isSelected,
 
                                             // ✅ sudah show result
                                             // 'bg-green-500 border-green-500 text-white' =>

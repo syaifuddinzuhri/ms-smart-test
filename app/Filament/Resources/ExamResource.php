@@ -421,8 +421,8 @@ class ExamResource extends Resource
                     Tables\Actions\Action::make('toggleShowResult')
                         ->label(
                             fn(Exam $record) => $record->show_result_to_student
-                            ? 'Sembunyikan Nilai'
-                            : 'Tampilkan Nilai'
+                            ? 'Sembunyikan Hasil'
+                            : 'Tampilkan Hasil'
                         )
                         ->icon(
                             fn(Exam $record) => $record->show_result_to_student

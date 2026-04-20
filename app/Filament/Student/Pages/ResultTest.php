@@ -127,6 +127,16 @@ class ResultTest extends Page implements HasTable
                     ->weight(FontWeight::Bold)
                     ->size(TextColumn\TextColumnSize::Large),
                 Split::make([
+                    TextColumn::make('finished_at')
+                        ->description(new HtmlString('
+                            <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400 block mb-[-4px]">
+                                Waktu Selesai
+                            </span>
+                        '), position: 'above')
+                        ->dateTime('d M Y, H:i T')
+                        ->size(TextColumn\TextColumnSize::ExtraSmall)
+                        ->color('gray')
+                        ->icon('heroicon-m-calendar-days'),
                     TextColumn::make('subject.name')
                         ->formatStateUsing(fn($state) => 'Mata Pelajaran: ' . $state)
                         ->size(TextColumn\TextColumnSize::ExtraSmall)
@@ -137,16 +147,6 @@ class ResultTest extends Page implements HasTable
                         ->color('gray'),
                 ])->from('md')->extraAttributes(['class' => 'mb-1']),
 
-                TextColumn::make('finished_at')
-                    ->description(new HtmlString('
-                        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400 block mb-[-4px]">
-                            Waktu Selesai
-                        </span>
-                    '), position: 'above')
-                    ->dateTime('d M Y, H:i T')
-                    ->size(TextColumn\TextColumnSize::ExtraSmall)
-                    ->color('gray')
-                    ->icon('heroicon-m-calendar-days'),
 
                 Split::make([
                     TextColumn::make('student_score')
@@ -161,6 +161,12 @@ class ResultTest extends Page implements HasTable
                         ->badge()
                         ->color('info')
                         ->weight(FontWeight::Black),
+
+                    TextColumn::make('passing_grade')
+                        ->getStateUsing(fn($record) => "KKM / Min. Skor: " . number_format($record->passing_grade, 2))
+                        ->badge()
+                        ->color('gray')
+                        ->icon('heroicon-m-flag'),
 
                     TextColumn::make('is_lulus')
                         ->getStateUsing(function ($record) {
