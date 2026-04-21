@@ -30,7 +30,7 @@
             MULAI KERJAKAN
         </x-filament::button>
         <p class="mt-4 text-[10px] text-gray-400 uppercase font-medium">
-            MANUSGI SMART TEST • SECURITY PROTOCOL
+            MS SMART TEST • SECURITY PROTOCOL
         </p>
     </div>
 </div>

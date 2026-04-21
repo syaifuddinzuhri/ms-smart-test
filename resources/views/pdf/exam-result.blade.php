@@ -390,7 +390,7 @@
                 @endif
                 <td style="border: none; vertical-align: middle; text-align: left;">
                     <div class="exam-title">HASIL UJIAN PESERTA</div>
-                    <div class="exam-subtitle">MANUSGI SMART TEST - {{ $exam->title }}</div>
+                    <div class="exam-subtitle">MS SMART TEST - {{ $exam->title }}</div>
                 </td>
             </tr>
         </table>

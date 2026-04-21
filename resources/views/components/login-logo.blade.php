@@ -54,7 +54,7 @@
 
     <!-- Judul Aplikasi -->
     <h2 class="text-2xl font-black tracking-tight text-gray-950 dark:text-white uppercase">
-        Manusgi <span class="text-emerald-600">Smart Test</span>
+        MS <span class="text-emerald-600">Smart Test</span>
     </h2>
 
     <!-- Badge Penanda Panel -->
@@ -62,12 +62,12 @@
         class="my-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest
         {{ $isAdmin
             ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-            : 'bg-blue-100 text-blue-700 border border-blue-200' }}">
+            : 'bg-orange-100 text-orange-700 border border-orange-200' }}">
         <span class="mr-1.5 flex h-2 w-2">
             <span
                 class="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75 {{ !$isAdmin ? 'bg-emerald-400' : 'bg-blue-400' }}"></span>
             <span
-                class="relative inline-flex rounded-full h-2 w-2 {{ $isAdmin ? 'bg-emerald-500' : 'bg-blue-500' }}"></span>
+                class="relative inline-flex rounded-full h-2 w-2 {{ $isAdmin ? 'bg-emerald-500' : 'bg-orange-500' }}"></span>
         </span>
         Portal {{ $isAdmin ? 'Administrator' : 'Peserta' }}
     </div>

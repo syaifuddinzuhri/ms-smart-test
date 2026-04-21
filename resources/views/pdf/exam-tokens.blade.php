@@ -138,7 +138,7 @@
                 <td style="border: none; vertical-align: middle; text-align: left;">
                     <div class="exam-title">{{ $exam->title }}</div>
                     <div style="font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px;">
-                        MANUSGI SMART TEST
+                        MS SMART TEST
                     </div>
                 </td>
             </tr>
@@ -240,7 +240,7 @@
     </div>
 
     <div class="footer">
-        Dicetak pada: {{ now()->format('d/m/Y H:i:s') }} | Manusgi Smart Test
+        Dicetak pada: {{ now()->format('d/m/Y H:i:s') }} | MS Smart Test
     </div>
 </body>
 

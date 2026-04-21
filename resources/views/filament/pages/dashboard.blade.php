@@ -5,7 +5,7 @@
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tight">Halo, {{ auth()->user()->name }}! 👋</h2>
                 <p class="mt-2 text-green-100 max-w-lg leading-relaxed">
-                    Sistem <b>MANUSGI SMART TEST</b> siap digunakan. Pantau aktivitas peserta secara realtime dan pastikan integritas
+                    Sistem <b>MS SMART TEST</b> siap digunakan. Pantau aktivitas peserta secara realtime dan pastikan integritas
                     ujian tetap terjaga.
                 </p>
             </div>

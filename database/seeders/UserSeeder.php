@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'Administrator',
             'username' => 'admin',
-            'email' => 'admin@manusgi.com',
+            'email' => 'admin@mssmart.com',
             'password' => Hash::make('password'),
             'role' => UserRole::ADMIN->value,
         ]);
@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'Guru Pengajar',
             'username' => 'teacher',
-            'email' => 'teacher@manusgi.com',
+            'email' => 'teacher@mssmart.com',
             'password' => Hash::make('password'),
             'role' => UserRole::TEACHER->value,
         ]);
@@ -33,7 +33,7 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'Pengawas 1',
             'username' => 'supervisor',
-            'email' => 'supervisor@manusgi.com',
+            'email' => 'supervisor@mssmart.com',
             'password' => Hash::make('password'),
             'role' => UserRole::SUPERVISOR->value,
         ]);
