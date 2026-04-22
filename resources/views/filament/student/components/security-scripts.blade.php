@@ -1,4 +1,4 @@
-<!-- 1. STYLE CSS GLOBAL -->
+{{-- <!-- 1. STYLE CSS GLOBAL -->
 <style>
     body {
         -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
@@ -223,4 +223,4 @@
             activateShield(false);
         });
     })();
-</script>
+</script> --}}
