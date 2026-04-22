@@ -17,25 +17,9 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'Administrator',
             'username' => 'admin',
-            'email' => 'admin@mssmart.com',
-            'password' => Hash::make('password'),
+            'email' => 'admin@mssmart.id',
+            'password' => Hash::make('admin@mssmart'),
             'role' => UserRole::ADMIN->value,
-        ]);
-
-        User::create([
-            'name' => 'Guru Pengajar',
-            'username' => 'teacher',
-            'email' => 'teacher@mssmart.com',
-            'password' => Hash::make('password'),
-            'role' => UserRole::TEACHER->value,
-        ]);
-
-        User::create([
-            'name' => 'Pengawas 1',
-            'username' => 'supervisor',
-            'email' => 'supervisor@mssmart.com',
-            'password' => Hash::make('password'),
-            'role' => UserRole::SUPERVISOR->value,
         ]);
     }
 }

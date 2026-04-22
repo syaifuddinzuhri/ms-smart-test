@@ -37,12 +37,17 @@ class ExamGradingResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    // Hanya tampilkan session yang sudah COMPLETED
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
             ->where('status', ExamSessionStatus::COMPLETED)
-            ->whereNull('finalized_at');
+            ->whereNull('finalized_at')
+            ->whereHas('exam.questions', function (Builder $query) {
+                $query->whereIn('question_type', [
+                    QuestionType::ESSAY,
+                    QuestionType::SHORT_ANSWER,
+                ]);
+            });
     }
 
     public static function table(Tables\Table $table): Tables\Table
