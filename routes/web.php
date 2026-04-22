@@ -1,21 +1,30 @@
 <?php
 
-use App\Enums\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+// Ambil domain bersih tanpa http
+$mainDomain = str_replace(['http://', 'https://'], '', config('app.app_domain'));
+
+Route::domain($mainDomain)->group(function () {
+    Route::get('/', function () {
+        // Arahkan ke subdomain student jika domain utama diakses
+        return redirect()->to('http://' . config('app.student_url'));
+    });
 });
 
-Route::get('/login', function () {
-    if (auth()->check()) {
-        $role = auth()->user()->role->value;
-        return ($role === UserRole::STUDENT->value) ? redirect('/student') : redirect('/admin');
-    }
-    return redirect('/'); // Kirim ke Landing Page untuk pilih Login
-})->name('login');
+// Route::get('/', function () {
+//     return view('welcome');
+// });
+
+// Route::get('/login', function () {
+//     if (auth()->check()) {
+//         $role = auth()->user()->role->value;
+//         return ($role === UserRole::STUDENT->value) ? redirect('/student') : redirect('/admin');
+//     }
+//     return redirect('/'); // Kirim ke Landing Page untuk pilih Login
+// })->name('login');
 
 Route::post('/logout', function (Request $request) {
     Auth::logout();

@@ -11,10 +11,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->redirectTo(
-            guests: '/',
-            users: null,
-        );
+        // 1. Beritahu Laravel untuk tidak mengenkripsi cookie session agar transisi lancar
+        $middleware->encryptCookies(except: [
+            'ms_admin_session',
+            'ms_student_session',
+        ]);
+
+        // 2. Set Cookie Nama secara dinamis sebelum session dimulai
+        $middleware->alias([
+            // Jika Anda masih ingin menggunakan middleware kustom, pastikan terdaftar di sini
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

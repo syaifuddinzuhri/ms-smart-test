@@ -32,7 +32,7 @@
         height: 1rem;
     }
 </style>
-
+{{--
 <div class="text-center border-t border-gray-100 pt-6">
     <a href="/" class="back-to-home">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
@@ -40,4 +40,4 @@
         </svg>
         <span>Kembali ke Halaman Utama</span>
     </a>
-</div>
+</div> --}}

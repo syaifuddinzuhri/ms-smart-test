@@ -29,13 +29,15 @@ class AdminPanelProvider extends PanelProvider
 {
     public function boot(): void
     {
+        config(['session.cookie' => 'ms_admin_session']);
     }
 
     public function panel(Panel $panel): Panel
     {
         return $panel
             ->id(PanelType::ADMIN->value)
-            ->path(PanelType::ADMIN->value)
+            ->domain(str_replace(['http://', 'https://'], '', config('app.admin_url')))
+            ->path('')
             ->navigationGroups([
                 NavigationGroup::make()
                     ->label('Manajemen Peserta')
@@ -124,7 +126,6 @@ class AdminPanelProvider extends PanelProvider
                 Css::make('katex-css', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'),
                 Js::make('katex-js', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'),
                 Js::make('katex-auto-render', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js'),
-            ])
-            ->spa();
+            ]);
     }
 }

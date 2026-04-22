@@ -53,6 +53,9 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    'admin_url' => env('ADMIN_DOMAIN'),
+    'student_url' => env('STUDENT_DOMAIN'),
+    'app_domain' => env('APP_DOMAIN'),
 
     /*
     |--------------------------------------------------------------------------
