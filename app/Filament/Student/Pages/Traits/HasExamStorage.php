@@ -70,7 +70,7 @@ trait HasExamStorage
         ]);
 
         Notification::make()->title('Sesi Berakhir')->body($reason)->danger()->send();
-        return redirect()->to('/student');
+        return redirect()->to('/');
     }
 
     protected function validateSessionState()
@@ -99,7 +99,7 @@ trait HasExamStorage
                 ->danger()
                 ->send();
 
-            return redirect()->to('/student');
+            return redirect()->to('/');
         }
 
         return true;

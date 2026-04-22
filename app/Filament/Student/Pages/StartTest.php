@@ -67,7 +67,7 @@ class StartTest extends Page implements HasForms, HasActions
 
         // 1. Validasi Keberadaan Session
         if (!$this->session) {
-            return redirect()->to('/student');
+            return redirect()->to('/');
         }
 
         // Simpan ID untuk request selanjutnya
@@ -76,7 +76,7 @@ class StartTest extends Page implements HasForms, HasActions
         // 2. Validasi Keberadaan Exam
         $this->exam = Exam::find($this->session->exam_id);
         if (!$this->exam) {
-            return redirect()->to('/student');
+            return redirect()->to('/');
         }
 
         // 3. Logika Status Pause
@@ -367,7 +367,7 @@ class StartTest extends Page implements HasForms, HasActions
                     ->send();
             }
 
-            return redirect()->to('/student');
+            return redirect()->to('/');
 
         } catch (Exception $e) {
             Notification::make()

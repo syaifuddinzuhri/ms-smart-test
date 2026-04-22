@@ -42,7 +42,7 @@
                                 </div>
                             @endforeach
 
-                            <a href="/student"
+                            <a href="/"
                                 class="text-xs font-bold text-gray-400 hover:text-danger-500 transition-all tracking-widest uppercase flex items-center justify-center gap-2 py-2">
                                 <x-heroicon-m-x-circle class="w-4 h-4" />
                                 Batalkan Sesi

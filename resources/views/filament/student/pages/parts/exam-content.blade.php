@@ -197,7 +197,7 @@
                         @this.timeOut();
 
                         setTimeout(() => {
-                            window.location.href = '/student';
+                            window.location.href = '/';
                         }, 5000);
                     }
                 }, 1000);

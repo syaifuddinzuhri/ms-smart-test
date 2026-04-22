@@ -42,13 +42,13 @@ class InputToken extends Page implements HasForms
         $this->exam_id = request()->query('exam_id');
 
         if (!$this->exam_id) {
-            return redirect()->to('/student');
+            return redirect()->to('/');
         }
 
         $this->record = Exam::where('status', ExamStatus::ACTIVE)->find($this->exam_id);
 
         if (!$this->record) {
-            return redirect()->to('/student');
+            return redirect()->to('/');
         }
 
         ExamSession::where('user_id', auth()->id())
