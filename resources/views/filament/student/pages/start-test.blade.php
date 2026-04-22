@@ -34,7 +34,23 @@
         }
     "
         @visibilitychange.window="if (document.hidden) lockExam()"
-        @blur.window="setTimeout(() => { if (!document.hasFocus()) lockExam() }, 200);" class="relative">
+        @blur.window="
+        if (!window.isNavigatingAllowed) {
+            // Berikan delay sangat singkat untuk memastikan bukan sekadar flicker
+            setTimeout(() => {
+                if (!document.hasFocus()) {
+                    lockExam();
+                }
+            }, 100);
+        }
+    "
+        @focus.window="
+        // Jika kembali fokus tapi sempat kehilangan fokus, cek validitas
+        if (!window.isNavigatingAllowed && !document.hasFocus()) {
+            lockExam();
+        }
+    "
+        class="relative">
 
         {{-- <template x-if="showFullscreenOverlay && !isLocked">
             @include('filament.student.pages.parts.fullscreen-overlay')
@@ -51,7 +67,8 @@
                     <h1 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                         {{ $exam->title }}
                     </h1>
-                    <div class="flex items-center gap-y-2 flex-col md:flex-row md:items-center md:justify-between w-full">
+                    <div
+                        class="flex items-center gap-y-2 flex-col md:flex-row md:items-center md:justify-between w-full">
                         <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium">
                             {{ $exam->category?->name }} |
                             {{ $exam->subject?->name }} |
@@ -159,6 +176,37 @@
             });
             document.addEventListener('click', (e) => {
                 if (e.ctrlKey || e.metaKey) triggerLock();
+            });
+
+            window.addEventListener('pagehide', () => {
+                if (!window.isNavigatingAllowed) window.triggerLock();
+            });
+
+            // Deteksi saat sistem membekukan tab (biasanya saat buka app lain di floating mode)
+            document.addEventListener('freeze', () => {
+                window.triggerLock();
+            });
+
+            document.querySelectorAll('video').forEach(video => {
+                video.disablePictureInPicture = true;
+                video.setAttribute('controlslist', 'nodownload noplaybackrate');
+            });
+
+            // Mencegah seret/drag teks ke jendela lain (floating)
+            document.addEventListener('dragstart', (e) => {
+                e.preventDefault();
+                window.triggerLock();
+            });
+
+            // Deteksi jika ukuran layar berubah mendadak (ciri-ciri split screen atau resize ke floating)
+            window.addEventListener('resize', () => {
+                if (window.isPageReady && !window.isNavigatingAllowed) {
+                    // Jika lebar atau tinggi berkurang lebih dari 20% secara mendadak, kunci!
+                    // Atau Anda bisa paksa ukuran minimal.
+                    if (window.innerWidth < 600 || window.innerHeight < 400) {
+                        window.triggerLock();
+                    }
+                }
             });
         </script>
     @endpush
