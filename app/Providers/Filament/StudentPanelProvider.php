@@ -110,6 +110,14 @@ class StudentPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn(): string => Blade::render('filament.components.custom-styles'),
             )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn(): string => Blade::render('filament.student.components.security-styles'),
+            )
+            ->renderHook(
+                PanelsRenderHook::SCRIPTS_AFTER,
+                fn(): string => Blade::render('filament.student.components.security-scripts'),
+            )
             ->assets([
                 Css::make('katex-css', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'),
                 Js::make('katex-js', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'),
