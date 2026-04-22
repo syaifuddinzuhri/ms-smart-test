@@ -62,23 +62,23 @@ class ExamMonitoringResource extends Resource
                     ->sortable(),
 
                 // SKOR / NILAI
-                TextColumn::make('score_pg')
-                    ->label('PG')
-                    ->numeric(2)
-                    ->color(fn($state) => $state < 0 ? 'danger' : 'success')
-                    ->toggleable(),
+                // TextColumn::make('score_pg')
+                //     ->label('PG')
+                //     ->numeric(2)
+                //     ->color(fn($state) => $state < 0 ? 'danger' : 'success')
+                //     ->toggleable(),
 
-                TextColumn::make('score_short_answer')
-                    ->label('Isian')
-                    ->numeric(2)
-                    ->color(fn($state) => $state < 0 ? 'danger' : 'success')
-                    ->toggleable(),
+                // TextColumn::make('score_short_answer')
+                //     ->label('Isian')
+                //     ->numeric(2)
+                //     ->color(fn($state) => $state < 0 ? 'danger' : 'success')
+                //     ->toggleable(),
 
-                TextColumn::make('score_essay')
-                    ->label('Essay')
-                    ->numeric(2)
-                    ->color(fn($state) => $state < 0 ? 'danger' : 'success')
-                    ->toggleable(),
+                // TextColumn::make('score_essay')
+                //     ->label('Essay')
+                //     ->numeric(2)
+                //     ->color(fn($state) => $state < 0 ? 'danger' : 'success')
+                //     ->toggleable(),
 
                 TextColumn::make('total_score')
                     ->label('Prediksi Nilai Akhir')
