@@ -68,26 +68,26 @@ class ExamResultResource extends Resource
                     ->sortable(),
 
                 // SKOR / NILAI
-                TextColumn::make('score_pg')
-                    ->label('PG')
-                    ->numeric(2)
-                    ->badge()
-                    ->color('warning')
-                    ->toggleable(isToggledHiddenByDefault: false),
+                // TextColumn::make('score_pg')
+                //     ->label('PG')
+                //     ->numeric(2)
+                //     ->badge()
+                //     ->color('warning')
+                //     ->toggleable(isToggledHiddenByDefault: false),
 
-                TextColumn::make('score_short_answer')
-                    ->label('Jawaban Singkat')
-                    ->numeric(2)
-                    ->badge()
-                    ->color('warning')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // TextColumn::make('score_short_answer')
+                //     ->label('Jawaban Singkat')
+                //     ->numeric(2)
+                //     ->badge()
+                //     ->color('warning')
+                //     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('score_essay')
-                    ->label('Essay')
-                    ->badge()
-                    ->color('warning')
-                    ->numeric(2)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // TextColumn::make('score_essay')
+                //     ->label('Essay')
+                //     ->badge()
+                //     ->color('warning')
+                //     ->numeric(2)
+                //     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total_score')
                     ->label('Total')
