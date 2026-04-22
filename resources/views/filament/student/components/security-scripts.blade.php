@@ -1,15 +1,5 @@
 <script>
     (function() {
-        window.triggerLock = function() {
-            // Pastikan fungsi Livewire lockExam tersedia sebelum dipanggil
-            if (typeof @this !== 'undefined') {
-                @this.call('lockExam');
-            } else {
-                // Fallback jika @this tidak ada (halaman non-livewire)
-                console.warn("Security: triggerLock dipicu tapi Livewire tidak ditemukan.");
-            }
-        };
-
         const lockPortrait = async () => {
             try {
                 if (screen.orientation && screen.orientation.lock) {
