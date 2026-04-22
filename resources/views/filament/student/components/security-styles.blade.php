@@ -17,7 +17,8 @@
     }
 
     /* Hanya muncul di perangkat mobile (layar kecil) saat mode landscape */
-    @media screen and (orientation: landscape) and (max-device-width: 932px) {
+    @media screen and (orientation: landscape) and (max-height: 500px),
+    screen and (orientation: landscape) and (max-width: 950px) {
         #portrait-lock-message {
             display: flex !important;
         }
@@ -32,7 +33,7 @@
         position: fixed;
         inset: 0;
         background: #ffffff;
-        z-index: 99999;
+        z-index: 999999;
         flex-direction: column;
         align-items: center;
         justify-content: center;
