@@ -78,7 +78,6 @@ class InputToken extends Page implements HasForms
                             ->required()
                             ->maxLength(10)
                             ->extraInputAttributes(['style' => 'text-transform: uppercase; text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.1em;'])
-                            ->autofocus(),
                     ]),
             ])
             ->statePath('data');

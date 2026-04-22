@@ -74,10 +74,6 @@ class StudentPanelProvider extends PanelProvider
                 fn() => view('components.login-footer'),
             )
             ->renderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
-                fn(): string => Blade::render('filament.student.components.security-styles'),
-            )
-            ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn(): string => Blade::render('filament.student.components.security-scripts'),
             )
@@ -119,12 +115,12 @@ class StudentPanelProvider extends PanelProvider
                 fn(): string => Blade::render('filament.components.custom-styles'),
             )
             ->renderHook(
-                PanelsRenderHook::HEAD_END,
-                fn(): string => Blade::render('filament.student.components.security-styles'),
-            )
-            ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn(): string => Blade::render('filament.student.components.security-scripts'),
+            )
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE, // Letakkan di posisi menu user berada
+                fn () => view('components.custom-logout-button'),
             )
             ->assets([
                 Css::make('katex-css', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'),

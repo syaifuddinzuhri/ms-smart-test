@@ -91,6 +91,10 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE, // Letakkan di posisi menu user berada
+                fn () => view('components.custom-logout-button'),
+            )
+            ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 fn() => view('components.login-logo'),
             )

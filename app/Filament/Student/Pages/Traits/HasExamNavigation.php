@@ -126,6 +126,7 @@ trait HasExamNavigation
             'system_id' => null
         ]);
 
-        return redirect(url('/input-token?exam_id=' . $this->exam->id));
+        // return redirect(url('/input-token?exam_id=' . $this->exam->id));
+        return redirect(url('/'));
     }
 }

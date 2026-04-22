@@ -92,4 +92,6 @@
     body {
         overscroll-behavior-y: !contain;
     }
+
+    .fi-user-menu { display: none !important; }
 </style>

@@ -215,7 +215,7 @@ class ActiveExamsTable extends BaseWidget
                         if ($record->status === ExamStatus::INACTIVE)
                             return null;
 
-                        return redirect(route('filament.student.pages.input-token', ['exam_id' => $record->id]));
+                        return route('filament.student.pages.input-token', ['exam_id' => $record->id]);
                     })
                     ->disabled(function ($record) {
                         $session = $record->sessions->first();

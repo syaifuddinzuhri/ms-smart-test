@@ -114,8 +114,7 @@ class Login extends BaseLogin
         return TextInput::make('username')
             ->label('Username')
             ->required()
-            ->autocomplete()
-            ->autofocus();
+            ->autocomplete();
     }
 
     protected function getCredentialsFromFormData(array $data): array
