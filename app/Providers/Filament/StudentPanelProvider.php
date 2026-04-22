@@ -130,7 +130,6 @@ class StudentPanelProvider extends PanelProvider
                 Css::make('katex-css', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'),
                 Js::make('katex-js', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'),
                 Js::make('katex-auto-render', 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js'),
-            ])
-            ->spa();
+            ]);
     }
 }
