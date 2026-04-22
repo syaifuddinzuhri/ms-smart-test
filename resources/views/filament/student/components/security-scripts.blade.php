@@ -1,73 +1,87 @@
 <script>
-    const lockPortrait = async () => {
-        try {
-            if (screen.orientation && screen.orientation.lock) {
-                // Coba kunci ke portrait-primary
-                await screen.orientation.lock('portrait-primary');
+    (function() {
+        window.triggerLock = function() {
+            // Pastikan fungsi Livewire lockExam tersedia sebelum dipanggil
+            if (typeof @this !== 'undefined') {
+                @this.call('lockExam');
+            } else {
+                // Fallback jika @this tidak ada (halaman non-livewire)
+                console.warn("Security: triggerLock dipicu tapi Livewire tidak ditemukan.");
             }
-        } catch (err) {
-            console.warn("Orientasi tidak bisa dikunci: ", err);
-        }
-    };
+        };
 
-    // Panggil fungsi ini saat user klik tombol "Mulai Ujian" atau masuk ke halaman
-    // Catatan: Biasanya butuh interaksi user (click) agar ini berfungsi
-    window.addEventListener('click', () => {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().then(lockPortrait);
-        }
-    }, {
-        once: true
-    }); // Jalankan sekali saja saat pertama klik
-
-    window.addEventListener("orientationchange", function() {
-        // Jika berubah ke landscape (90 atau -90 derajat)
-        if (Math.abs(window.orientation) === 90) {
-            // Cek jika ini mobile (lebar layar kecil)
-            if (window.innerWidth < 1000) {
-                window.triggerLock(); // Langsung kunci ujian
+        const lockPortrait = async () => {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('portrait-primary');
+                }
+            } catch (err) {
+                console.warn("Orientasi tidak bisa dikunci secara native.");
             }
-        }
-    });
+        };
 
-    // Versi modern
-    if (screen.orientation) {
-        screen.orientation.addEventListener('change', function(e) {
-            if (e.currentTarget.type.startsWith('landscape') && window.innerWidth < 1000) {
-                window.triggerLock();
+        // --- PROTEKSI KEYBOARD & COPY-PASTE ---
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('copy', e => e.preventDefault());
+        document.addEventListener('cut', e => e.preventDefault());
+        document.addEventListener('paste', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
             }
         });
-    }
+        document.addEventListener('dragstart', e => e.preventDefault());
 
+        // --- PROTEKSI FULLSCREEN & ORIENTASI ---
+        window.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(lockPortrait).catch(() => {});
+            }
+        }, {
+            once: true
+        });
 
-    window.addEventListener('pagehide', () => {
-        if (!window.isNavigatingAllowed) window.triggerLock();
-    });
+        const handleOrientationChange = () => {
+            if (window.innerWidth < 1000) {
+                const isLandscape = window.innerWidth > window.innerHeight;
+                if (isLandscape) {
+                    window.triggerLock();
+                }
+            }
+        };
 
-    // Deteksi saat sistem membekukan tab (biasanya saat buka app lain di floating mode)
-    document.addEventListener('freeze', () => {
-        window.triggerLock();
-    });
+        if (screen.orientation) {
+            screen.orientation.addEventListener('change', (e) => {
+                if (e.currentTarget.type.startsWith('landscape') && window.innerWidth < 1000) {
+                    window.triggerLock();
+                }
+            });
+        }
+        window.addEventListener("orientationchange", handleOrientationChange);
 
-    document.querySelectorAll('video').forEach(video => {
-        video.disablePictureInPicture = true;
-        video.setAttribute('controlslist', 'nodownload noplaybackrate');
-    });
-
-    // Mencegah seret/drag teks ke jendela lain (floating)
-    document.addEventListener('dragstart', (e) => {
-        e.preventDefault();
-        window.triggerLock();
-    });
-
-    // Deteksi jika ukuran layar berubah mendadak (ciri-ciri split screen atau resize ke floating)
-    window.addEventListener('resize', () => {
-        if (window.isPageReady && !window.isNavigatingAllowed) {
-            // Jika lebar atau tinggi berkurang lebih dari 20% secara mendadak, kunci!
-            // Atau Anda bisa paksa ukuran minimal.
+        // --- DETEKSI FLOATING / SPLIT SCREEN / TAB SWITCH ---
+        window.addEventListener('resize', () => {
+            // Deteksi perubahan ukuran mendadak (ciri floating/split)
             if (window.innerWidth < 600 || window.innerHeight < 400) {
                 window.triggerLock();
             }
-        }
-    });
+        });
+
+        window.addEventListener('pagehide', () => window.triggerLock());
+        document.addEventListener('freeze', () => window.triggerLock());
+
+        // --- PROTEKSI MEDIA ---
+        const secureMedia = () => {
+            document.querySelectorAll('video').forEach(video => {
+                video.disablePictureInPicture = true;
+                video.setAttribute('controlslist', 'nodownload noplaybackrate');
+            });
+        };
+        secureMedia();
+
+        // Jalankan ulang saat ada perubahan DOM (Livewire navigation)
+        document.addEventListener('livewire:navigated', () => {
+            secureMedia();
+        });
+
+    })();
 </script>
