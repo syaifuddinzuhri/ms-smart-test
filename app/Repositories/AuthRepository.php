@@ -68,7 +68,7 @@ class AuthRepository implements AuthRepositoryInterface
     {
         $user = Auth::guard('api')->user();
         if ($user) {
-            return $user->currentAccessToken()->delete();
+            $user->tokens()->delete();
         }
         return false;
     }
