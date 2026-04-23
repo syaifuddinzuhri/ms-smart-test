@@ -24,31 +24,8 @@ class Dashboard extends BaseDashboard
         return '';
     }
 
-    public $lastSnapshotUrl = null;
-
-    // Method untuk menerima snapshot dari JS
-    public function uploadSnapshot($imageData)
-    {
-        $image = str_replace('data:image/jpeg;base64,', '', $imageData);
-        $image = str_replace(' ', '+', $image);
-        $imageName = 'test_snapshot_' . auth()->id() . '.jpg';
-
-        Storage::disk('public')->put('snapshots/' . $imageName, base64_decode($image));
-
-        $this->lastSnapshotUrl = asset('storage/snapshots/' . $imageName) . '?v=' . time();
-
-        // Opsional: Beri notifikasi kecil
-        // $this->dispatch('snapshot-uploaded');
-    }
-
     public function mount()
     {
-        /**
-         * LOGIC RESET AKSES GLOBAL:
-         * Setiap kali siswa masuk ke Dashboard, cari semua sesi ujian milik siswa ini
-         * yang masih memiliki token/system_id aktif, lalu set menjadi null.
-         * Ini adalah lapis keamanan jika siswa berhasil 'back' ke Dashboard.
-         */
         ExamSession::where('user_id', Auth::id())
             ->where(function ($query) {
                 $query->whereNotNull('token')
