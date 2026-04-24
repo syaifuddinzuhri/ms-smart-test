@@ -125,6 +125,8 @@ class StartTest extends Page implements HasForms, HasActions
 
         $updateData = [
             'status' => ExamSessionStatus::PAUSE,
+            'token' => null,
+            'system_id' => null,
             'last_violation_at' => now(),
             'violation_count' => ($this->exam->violation_count ?? 0) + 1,
             'violation_log' => $logs,

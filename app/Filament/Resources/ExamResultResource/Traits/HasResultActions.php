@@ -450,7 +450,6 @@ trait HasResultActions
                 <div class='p-3 bg-gray-50 border-l-4 border-orange-500 rounded'>
                     <div class='flex justify-between font-bold text-xs text-gray-500 mb-1'>
                         <span>$time</span>
-                        <span>Soal No: $step</span>
                     </div>
                     <p class='text-sm text-gray-700'>$reason</p>
                 </div>";

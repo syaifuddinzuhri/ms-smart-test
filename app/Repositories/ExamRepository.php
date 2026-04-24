@@ -35,17 +35,17 @@ class ExamRepository implements ExamRepositoryInterface
 
         match ($status) {
             'completed' => $query->whereHas('sessions', function ($q) use ($user) {
-                    $q->where('user_id', $user->id)
+                $q->where('user_id', $user->id)
                     ->where('status', ExamSessionStatus::COMPLETED);
-                }),
+            }),
 
             'active' => $query->whereHas('sessions', function ($q) use ($user) {
-                    $q->where('user_id', $user->id)
+                $q->where('user_id', $user->id)
                     ->where('status', '!=', ExamSessionStatus::COMPLETED);
-                }),
+            }),
             'pending' => $query->whereDoesntHave('sessions', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
+                $q->where('user_id', $user->id);
+            })
                 ->where('status', ExamStatus::ACTIVE)
                 ->where('start_time', '<=', $now)
                 ->where('end_time', '>=', $now),
@@ -159,8 +159,8 @@ class ExamRepository implements ExamRepositoryInterface
         if (!$validToken) {
             throw new Exception(
                 $session
-                ? 'Token kadaluarsa / Sesi Anda terdeteksi sudah berjalan. Silahkan masukkan token akses masuk ulang dari pengawas.'
-                : 'Token akses salah, kadaluarsa, atau tidak sesuai tipe.'
+                    ? 'Token kadaluarsa / Sesi Anda terdeteksi sudah berjalan. Silahkan masukkan token akses masuk ulang dari pengawas.'
+                    : 'Token akses salah, kadaluarsa, atau tidak sesuai tipe.'
             );
         }
 
@@ -199,13 +199,31 @@ class ExamRepository implements ExamRepositoryInterface
 
     public function pauseExamSession(Exam $exam)
     {
+        $session =  ExamSession::where('user_id', auth_api()->id)
+            ->where('exam_id', $exam->id)
+            ->where('status', ExamSessionStatus::ONGOING)
+            ->first();
+
+        $logs = $session->violation_log ?? [];
+
+        $logs[] = [
+            'time' => now()->toDateTimeString(),
+            'reason' => 'Sistem mendeteksi keluar dari halaman ujian',
+            'step' => null,
+            'tab' => null,
+            'ip' => request()->ip(),
+        ];
+
         ExamSession::where('user_id', auth_api()->id)
             ->where('exam_id', $exam->id)
             ->where('status', ExamSessionStatus::ONGOING)
             ->update([
                 'token' => null,
                 'system_id' => null,
-                'status' => ExamSessionStatus::PAUSE
+                'status' => ExamSessionStatus::PAUSE,
+                'last_violation_at' => now(),
+                'violation_count' => ($this->exam->violation_count ?? 0) + 1,
+                'violation_log' => $logs,
             ]);
     }
 
