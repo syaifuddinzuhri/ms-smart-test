@@ -128,7 +128,7 @@
                                         {{ $session->status->getLabel() }}
                                     </span>
                                     <span class="text-[10px] text-gray-400 italic">
-                                        {{ $session->status->value === 'completed' ? 'Selesai' : $session->last_activity?->diffForHumans() }}
+                                        {{ $session->last_activity?->diffForHumans() }}
                                     </span>
                                 </div>
 
