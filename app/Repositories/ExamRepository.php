@@ -136,6 +136,7 @@ class ExamRepository implements ExamRepositoryInterface
 
         $activeExamSession = ExamSession::where('user_id', $user->id)
             ->whereIn('status', [ExamSessionStatus::ONGOING, ExamSessionStatus::PAUSE])
+            ->where('exam_id', '!=', $exam->id)
             ->exists();
 
         if ($activeExamSession) {
