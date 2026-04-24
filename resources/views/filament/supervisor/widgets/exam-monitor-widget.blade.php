@@ -52,9 +52,8 @@
                     <div class="flex items-center gap-2">
                         @if ($ongoingCount > 0)
                             {{ ($this->pauseAllAction)([]) }}
-
-                            {{ ($this->resetAllAction)([]) }}
                         @endif
+                        {{ ($this->resetAllAction)([]) }}
                     </div>
                 </div>
 
