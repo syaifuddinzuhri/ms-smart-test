@@ -237,11 +237,11 @@ class ExamMonitoringResource extends Resource
             ->actions(
                 static::getMonitoringTableActions()
             )
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make(
-                    static::getMonitoringBulkActions() // Memanggil method baru dari Trait
-                ),
-            ])
+            // ->bulkActions([
+            //     Tables\Actions\BulkActionGroup::make(
+            //         static::getMonitoringBulkActions() // Memanggil method baru dari Trait
+            //     ),
+            // ])
             ->extremePaginationLinks()
             ->poll('5s')
             ->defaultSort('last_activity', 'desc');
