@@ -200,7 +200,7 @@
                                 @endphp
                                 <tr class="hover:bg-gray-50/50 transition text-center">
                                     <td
-                                        class="px-4 py-3 font-mono text-xl font-black text-left {{ $isExpired || $isUsed ? 'text-gray-300 line-through' : 'text-primary-600' }}" style="font-family: !monospace;">
+                                        class="px-4 py-3 font-token text-xl font-black text-left {{ $isExpired || $isUsed ? 'text-gray-300 line-through' : 'text-primary-600' }}">
                                         {{ $token->token }}
                                     </td>
                                     <td class="px-4 py-3 text-left">

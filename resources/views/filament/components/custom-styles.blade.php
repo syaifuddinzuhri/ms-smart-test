@@ -44,6 +44,20 @@
             padding-right: 1rem !important;
         }
     }
+
+    @font-face {
+        font-family: 'JetBrains Mono Local';
+        src: url('/fonts/jetbrains/JetBrainsMono-ExtraBold.ttf') format('truetype');
+        font-weight: 800;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    .font-token {
+        font-family: 'JetBrains Mono Local', monospace !important;
+        letter-spacing: 0.1em;
+        font-variant-ligatures: none;
+    }
 </style>
 
 {{-- Tailwind CDN & Config --}}
