@@ -27,8 +27,10 @@ Route::domain($apiDomain)->group(function () {
                 Route::post('/{exam}/start-session', [ExamController::class, 'startExamSession']);
                 Route::post('/{exam}/pause-session', [ExamController::class, 'pauseExamSession']);
                 Route::get('/{exam}/session', [ExamController::class, 'getExamSession']);
+                Route::post('/{exam}/save-answer', [ExamController::class, 'saveAnswer']);
+                Route::get('/{exam}/answers', [ExamController::class, 'getExamAnswers']);
+                Route::post('/exams/{exam}/finalize', [ExamController::class, 'finalize']);
             });
         });
-
     });
 });

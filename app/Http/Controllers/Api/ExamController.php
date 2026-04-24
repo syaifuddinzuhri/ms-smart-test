@@ -79,4 +79,48 @@ class ExamController extends Controller
             throw $e;
         }
     }
+
+    public function saveAnswer(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'question_id' => 'required|exists:questions,id',
+            'answer' => 'nullable', // Bisa ID pilihan (int), Array ID (multiple), atau String (essay)
+            'is_doubtful' => 'required|boolean',
+        ]);
+
+        try {
+            $token = $request->query('token');
+            $result = $this->examRepo->saveAnswer($exam, $token, $request->all());
+            return response()->success($result, "Jawaban berhasil disimpan");
+        } catch (Throwable $e) {
+            return response()->error($e->getMessage());
+        }
+    }
+
+    public function getExamAnswers(Request $request, Exam $exam)
+    {
+        try {
+            $token = $request->query('token');
+            $result = $this->examRepo->getExamAnswers($exam, $token);
+            return response()->success($result);
+        } catch (Throwable $e) {
+            return response()->error($e->getMessage());
+        }
+    }
+
+    public function finalize(Request $request, Exam $exam)
+{
+    try {
+        $token = $request->query('token');
+        $isTimeout = $request->boolean('is_timeout', false);
+
+        $result = $this->examRepo->finalizeExam($exam, $token, $isTimeout);
+
+        return response()->success($result, $isTimeout
+            ? "Waktu habis, jawaban otomatis dikirim."
+            : "Ujian berhasil diselesaikan.");
+    } catch (Throwable $e) {
+        return response()->error($e->getMessage());
+    }
+}
 }
