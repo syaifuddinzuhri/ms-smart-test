@@ -5,6 +5,7 @@
             $examId = data_get($filters, 'exam_id');
             $classroomId = data_get($filters, 'classroom_id');
             $ongoingCount = $sessions->where('status.value', 'ongoing')->count();
+            $pauseCount = $sessions->where('status.value', 'pause')->count();
         @endphp
 
         @if (!$examId || !$classroomId)
@@ -53,7 +54,9 @@
                         @if ($ongoingCount > 0)
                             {{ ($this->pauseAllAction)([]) }}
                         @endif
-                        {{ ($this->resetAllAction)([]) }}
+                        @if ($ongoingCount > 0 || $pauseCount > 0)
+                            {{ ($this->resetAllAction)([]) }}
+                        @endif
                     </div>
                 </div>
 
