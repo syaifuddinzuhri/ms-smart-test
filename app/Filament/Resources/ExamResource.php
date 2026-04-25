@@ -431,6 +431,7 @@ class ExamResource extends Resource
                         ->action(function (Exam $record) {
                             $record->update([
                                 'is_lock' => true,
+                                'status' => ExamStatus::ACTIVE
                             ]);
                         })
                         ->visible(fn(Exam $record) => !$record->is_lock),
