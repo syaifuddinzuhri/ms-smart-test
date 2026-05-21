@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ExamQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,49 @@ Route::post('/logout', function (Request $request) {
     return redirect('/');
 })->name('logout');
 
+
+Route::get('/test/exam-questions', function (Request $request) {
+    $examId = $request->query('exam_id');
+
+    if (!$examId) {
+        return response()->json(['message' => 'exam_id required'], 422);
+    }
+
+    $questions = ExamQuestion::where('exam_id', $examId)
+        ->with([
+            'question.options',
+            'question.attachments',
+        ])
+        ->orderBy('order', 'asc')
+        ->get()
+        ->map(function ($examQuestion) {
+            $question = $examQuestion->question;
+
+            return [
+                'id'            => $question->id,
+                'order'         => $examQuestion->order,
+                'question_type' => $question->question_type,
+                'question_text' => $question->question_text,
+                'attachments'   => $question->attachments->map(fn($a) => [
+                    'id'        => $a->id,
+                    'file_path' => $a->file_path,
+                    'url'       => $a->url,
+                ]),
+                'options'       => $question->options->map(fn($o) => [
+                    'id'    => $o->id,
+                    'label' => $o->label,
+                    'text'  => $o->text,
+                    'order' => $o->order,
+                ]),
+            ];
+        });
+
+    return response()->json([
+        'exam_id'        => $examId,
+        'total'          => $questions->count(),
+        'questions'      => $questions,
+    ]);
+});
 
 Route::get('/pandoc', function () {
     $os = PHP_OS;
