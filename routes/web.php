@@ -35,28 +35,7 @@ Route::get('/test/exam-questions', function (Request $request) {
             'question.attachments',
         ])
         ->orderBy('order', 'asc')
-        ->get()
-        ->map(function ($examQuestion) {
-            $question = $examQuestion->question;
-
-            return [
-                'id'            => $question->id,
-                'order'         => $examQuestion->order,
-                'question_type' => $question->question_type,
-                'question_text' => $question->question_text,
-                'attachments'   => $question->attachments->map(fn($a) => [
-                    'id'        => $a->id,
-                    'file_path' => $a->file_path,
-                    'url'       => $a->url,
-                ]),
-                'options'       => $question->options->map(fn($o) => [
-                    'id'    => $o->id,
-                    'label' => $o->label,
-                    'text'  => $o->text,
-                    'order' => $o->order,
-                ]),
-            ];
-        });
+        ->get();
 
     return response()->json([
         'exam_id'        => $examId,
