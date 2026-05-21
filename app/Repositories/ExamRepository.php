@@ -112,7 +112,8 @@ class ExamRepository implements ExamRepositoryInterface
                     } else {
                         $query->orderBy('order', 'asc');
                     }
-                }
+                },
+                'question.attachments',
             ])
             ->when(
                 $orderSeed,
