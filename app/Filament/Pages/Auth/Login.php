@@ -77,7 +77,7 @@ class Login extends BaseLogin
             $this->throwFailureValidationException();
         }
 
-        if ($panelId === PanelType::ADMIN->value && $role !== UserRole::ADMIN->value) {
+        if ($panelId === PanelType::ADMIN->value && !\in_array($role, [UserRole::ADMIN->value, UserRole::TEACHER->value])) {
             $this->throwFailureValidationException();
         }
 
