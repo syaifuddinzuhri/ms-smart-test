@@ -25,6 +25,11 @@ class ImportStudent extends Page
     protected static ?string $navigationGroup = 'Manajemen Peserta';
     protected static ?int $navigationSort = 5;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== UserRole::TEACHER;
+    }
+
     protected static string $view = 'filament.pages.import-student';
 
     public ?array $data = [];

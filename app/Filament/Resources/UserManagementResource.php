@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\UserRole;
 use App\Filament\Resources\UserManagementResource\Pages;
 use App\Models\User;
 use Filament\Forms;

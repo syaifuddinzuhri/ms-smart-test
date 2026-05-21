@@ -31,6 +31,11 @@ class StudentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?int $navigationSort = 4;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== UserRole::TEACHER;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

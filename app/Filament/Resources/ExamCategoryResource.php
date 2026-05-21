@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\UserRole;
 use App\Filament\Resources\ExamCategoryResource\Pages;
 use App\Models\ExamCategory;
 use Filament\Forms\Components\Section;
@@ -29,6 +30,11 @@ class ExamCategoryResource extends Resource
     protected static ?string $navigationGroup = 'Manajemen Ujian';
 
     protected static ?int $navigationSort = 1;
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== UserRole::TEACHER;
+    }
 
     public static function form(Form $form): Form
     {

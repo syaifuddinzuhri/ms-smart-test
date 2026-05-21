@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\ExamSessionStatus;
 use App\Enums\ExamStatus;
+use App\Enums\UserRole;
 use App\Filament\Resources\ExamResource\Pages;
 use App\Helpers\ExamTimeHelper;
 use App\Models\Exam;
@@ -46,6 +47,11 @@ class ExamResource extends Resource
     protected static ?string $navigationGroup = 'Manajemen Ujian';
 
     protected static ?int $navigationSort = 2;
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== UserRole::TEACHER;
+    }
 
     public static function form(Form $form): Form
     {

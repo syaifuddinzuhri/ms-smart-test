@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\UserRole;
 use App\Filament\Resources\ClassroomResource\Pages;
 use App\Models\Classroom;
 use Filament\Forms\Components\Section;
@@ -28,6 +29,11 @@ class ClassroomResource extends Resource
     protected static ?string $navigationGroup = 'Manajemen Peserta';
 
     protected static ?int $navigationSort = 1;
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== UserRole::TEACHER;
+    }
 
     public static function form(Form $form): Form
     {

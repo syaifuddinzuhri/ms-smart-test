@@ -27,6 +27,11 @@ class UserResource extends Resource
     protected static ?string $navigationGroup = 'Pengaturan';
     protected static ?int $navigationSort = 9;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== UserRole::TEACHER;
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
