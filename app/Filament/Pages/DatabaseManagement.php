@@ -4,7 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
@@ -61,13 +61,16 @@ class DatabaseManagement extends Page
                 </div>'
             ))
             ->form([
-                Checkbox::make('confirm')
-                    ->label('Saya memahami tindakan ini tidak dapat dibatalkan.')
-                    ->accepted()
-                    ->validationMessages(['accepted' => 'Centang persetujuan untuk melanjutkan.']),
+                TextInput::make('confirm')
+                    ->label('Ketik "HAPUS UJIAN" untuk konfirmasi')
+                    ->placeholder('HAPUS UJIAN')
+                    ->required()
+                    ->rule('in:HAPUS UJIAN')
+                    ->validationMessages(['in' => 'Teks tidak sesuai. Ketik persis "HAPUS UJIAN".'])
+                    ->extraInputAttributes(['autocomplete' => 'off']),
             ])
             ->modalSubmitActionLabel('Ya, Reset Ujian')
-            ->action('runResetUjian');
+            ->action(fn() => $this->runResetUjian());
     }
 
     public function resetPesertaAction(): Action
@@ -92,13 +95,16 @@ class DatabaseManagement extends Page
                 </div>'
             ))
             ->form([
-                Checkbox::make('confirm')
-                    ->label('Saya memahami tindakan ini tidak dapat dibatalkan.')
-                    ->accepted()
-                    ->validationMessages(['accepted' => 'Centang persetujuan untuk melanjutkan.']),
+                TextInput::make('confirm')
+                    ->label('Ketik "HAPUS PESERTA" untuk konfirmasi')
+                    ->placeholder('HAPUS PESERTA')
+                    ->required()
+                    ->rule('in:HAPUS PESERTA')
+                    ->validationMessages(['in' => 'Teks tidak sesuai. Ketik persis "HAPUS PESERTA".'])
+                    ->extraInputAttributes(['autocomplete' => 'off']),
             ])
             ->modalSubmitActionLabel('Ya, Reset Peserta')
-            ->action('runResetPeserta');
+            ->action(fn() => $this->runResetPeserta());
     }
 
     public function resetSoalAction(): Action
@@ -122,13 +128,16 @@ class DatabaseManagement extends Page
                 </div>'
             ))
             ->form([
-                Checkbox::make('confirm')
-                    ->label('Saya memahami tindakan ini tidak dapat dibatalkan.')
-                    ->accepted()
-                    ->validationMessages(['accepted' => 'Centang persetujuan untuk melanjutkan.']),
+                TextInput::make('confirm')
+                    ->label('Ketik "HAPUS SOAL" untuk konfirmasi')
+                    ->placeholder('HAPUS SOAL')
+                    ->required()
+                    ->rule('in:HAPUS SOAL')
+                    ->validationMessages(['in' => 'Teks tidak sesuai. Ketik persis "HAPUS SOAL".'])
+                    ->extraInputAttributes(['autocomplete' => 'off']),
             ])
             ->modalSubmitActionLabel('Ya, Reset Soal')
-            ->action('runResetSoal');
+            ->action(fn() => $this->runResetSoal());
     }
 
     // =========================================================
