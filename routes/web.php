@@ -38,9 +38,8 @@ Route::get('/test/exam-questions', function (Request $request) {
         ->get();
 
     return response()->json([
-        'exam_id'        => $examId,
-        'total'          => $questions->count(),
-        'questions'      => $questions,
+        'success' => true,
+        'data' => $questions
     ]);
 });
 
