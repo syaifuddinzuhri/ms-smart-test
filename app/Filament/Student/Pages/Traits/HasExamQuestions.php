@@ -26,7 +26,8 @@ trait HasExamQuestions
                     } else {
                         $query->orderBy('order', 'asc');
                     }
-                }
+                },
+                'question.attachments',
             ])
             ->when(
                 $qSeed,

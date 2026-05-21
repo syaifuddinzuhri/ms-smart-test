@@ -256,6 +256,8 @@ class StartTest extends Page implements HasForms, HasActions
                 ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList']);
         }
 
+        $mediaHtml = view('filament.components.question-media', ['question' => $q])->render();
+
         return Group::make([
             Placeholder::make("text_{$name}")
                 ->label('')
@@ -264,6 +266,10 @@ class StartTest extends Page implements HasForms, HasActions
                         "<div class='prose max-w-none text-gray-800 soal-content'>{$q->question_text}</div>"
                     )
                 ),
+            Placeholder::make("media_{$name}")
+                ->label('')
+                ->content(new HtmlString($mediaHtml))
+                ->visible(fn() => $q->attachments->count() > 0 || !empty($q->external_link)),
             $input->label($isEssay ? 'Jawaban Anda:' : 'Pilih jawaban:')
                 ->extraAttributes(['class' => 'mt-4']),
         ])->visible(fn() => $this->activeTab === $tab && $this->currentStep === $step)
