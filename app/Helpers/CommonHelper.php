@@ -151,18 +151,16 @@ if (!function_exists('moveTempToPermanent')) {
         }
 
         // 3. Update path di dalam konten (bisa string tunggal atau array repeater)
-        $oldPathString = "storage/{$tempPath}"; // Path yang biasanya tertulis di HTML RichEditor
-        $newPathString = "storage/{$finalPath}";
+        $oldPathString = $tempPath;
+        $newPathString = $finalPath;
 
         if (is_array($content)) {
-            // Jika konten berupa array (seperti data dari Repeater)
             array_walk_recursive($content, function (&$item) use ($oldPathString, $newPathString) {
                 if (is_string($item)) {
                     $item = str_replace($oldPathString, $newPathString, $item);
                 }
             });
         } else if (is_string($content)) {
-            // Jika konten berupa string tunggal (seperti RichEditor biasa)
             $content = str_replace($oldPathString, $newPathString, $content);
         }
 
