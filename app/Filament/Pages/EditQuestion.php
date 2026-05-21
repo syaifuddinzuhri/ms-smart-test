@@ -7,7 +7,6 @@ use App\Enums\QuestionType;
 use App\Models\Question;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
@@ -15,7 +14,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -35,6 +33,8 @@ class EditQuestion extends Page
 
     public ?array $data = [];
 
+    public string $uploadToken = '';
+
     public function mount($record): void
     {
         $this->record = Question::with([
@@ -44,8 +44,9 @@ class EditQuestion extends Page
             'attachments'
         ])->find($record->id);
 
+        $this->uploadToken = (string) Str::uuid();
+
         $this->form->fill([
-            'upload_token' => (string) Str::uuid(),
             'subject_id' => $this->record->subject_id,
             'question_category_id' => $this->record->question_category_id,
             'question_type' => $this->record->question_type->value,
@@ -127,16 +128,13 @@ class EditQuestion extends Page
                 // ========================
                 Section::make('Konten Pertanyaan')
                     ->schema([
-                        Hidden::make('upload_token')
-                            ->default(fn() => (string) Str::uuid()),
-
                         RichEditor::make('question_text')
                             ->label("Isi Soal")
                             ->required()
                             ->fileAttachmentsDisk('public')
                             ->fileAttachmentsVisibility('public')
-                            ->fileAttachmentsDirectory(function (Get $get) {
-                                return "questions/temp/" . $get('upload_token');
+                            ->fileAttachmentsDirectory(function ($livewire) {
+                                return "questions/temp/" . $livewire->uploadToken;
                             })
                             ->live(onBlur: true)
                             ->reactive()
@@ -355,7 +353,7 @@ class EditQuestion extends Page
 
         try {
             $newQuestionText = moveTempToPermanent(
-                $data['upload_token'],
+                $this->uploadToken,
                 'questions',
                 $this->record->id,
                 $data['question_text']
@@ -380,7 +378,7 @@ class EditQuestion extends Page
 
             if (!empty($data['options'])) {
                 $newOptions = moveTempToPermanent(
-                    $data['upload_token'],
+                    $this->uploadToken,
                     'questions',
                     $this->record->id,
                     $data['options']

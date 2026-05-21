@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use App\Enums\QuestionType;
 use App\Models\Question;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
@@ -13,7 +12,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
@@ -34,11 +32,12 @@ class CreateQuestion extends Page
 
     public ?array $data = [];
 
+    public string $uploadToken = '';
+
     public function mount(): void
     {
-        $this->form->fill();
+        $this->uploadToken = (string) Str::uuid();
         $this->form->fill([
-            'upload_token' => (string) Str::uuid(), // Generate saat buka halaman
             'options_count' => 3,
         ]);
     }
@@ -108,9 +107,6 @@ class CreateQuestion extends Page
                 // ========================
                 Section::make('Konten Pertanyaan')
                     ->schema([
-                        Hidden::make('upload_token')
-                            ->default(fn() => (string) Str::uuid()),
-
                         RichEditor::make('question_text')
                             ->label("Isi Soal")
                             ->required()
@@ -118,8 +114,8 @@ class CreateQuestion extends Page
                             ->reactive()
                             ->fileAttachmentsDisk('public')
                             ->fileAttachmentsVisibility('public')
-                            ->fileAttachmentsDirectory(function (Get $get, $record) {
-                                return "questions/temp/" . $get('upload_token');
+                            ->fileAttachmentsDirectory(function ($livewire) {
+                                return "questions/temp/" . $livewire->uploadToken;
                             })
                             ->columnSpanFull(),
 
@@ -365,7 +361,7 @@ class CreateQuestion extends Page
             ]);
 
             $finalQuestionText = moveTempToPermanent(
-                $data['upload_token'],
+                $this->uploadToken,
                 'questions',
                 $question->id,
                 $data['question_text']
@@ -378,7 +374,7 @@ class CreateQuestion extends Page
             // ========================
             if (!empty($data['options'])) {
                 $finalOptions = moveTempToPermanent(
-                    $data['upload_token'],
+                    $this->uploadToken,
                     'questions',
                     $question->id,
                     $data['options']
