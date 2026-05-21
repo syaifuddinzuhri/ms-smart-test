@@ -404,14 +404,18 @@ class ExamResultResource extends Resource
             if (empty($text))
                 return $text;
 
-            $text = preg_replace_callback('/<img[^>]+src=["\']([^"\']+)["\']/', function ($match) {
+            $diskUrl = rtrim(config('filesystems.disks.public.url'), '/');
+
+            $text = preg_replace_callback('/<img[^>]+src=["\']([^"\']+)["\']/', function ($match) use ($diskUrl) {
                 $src = $match[1];
 
-                // Jika src adalah path relatif /storage/..., ubah ke path fisik
-                if (str_starts_with($src, '/storage/')) {
+                if (str_starts_with($src, $diskUrl . '/')) {
+                    $relativePath = substr($src, strlen($diskUrl) + 1);
+                    $path = storage_path('app/public/' . $relativePath);
+                } elseif (str_starts_with($src, '/storage/')) {
                     $path = public_path($src);
                 } else {
-                    $path = $src; // Gunakan path yang sudah absolut
+                    $path = $src;
                 }
 
                 // Jika file fisik ada, ubah ke Base64

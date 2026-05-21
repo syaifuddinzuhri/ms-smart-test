@@ -7,7 +7,7 @@
             @foreach ($question->attachments as $att)
                 @php
                     $ext = strtolower(pathinfo($att->file_path, PATHINFO_EXTENSION));
-                    $src = asset('storage/' . $att->file_path);
+                    $src = $att->url;
 
                     // Logic penentuan tipe
                     $type = 'other';
