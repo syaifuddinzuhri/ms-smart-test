@@ -35,7 +35,13 @@ Route::get('/test/exam-questions', function (Request $request) {
             'question.attachments',
         ])
         ->orderBy('order', 'asc')
-        ->get();
+        ->get()
+        ->map(function ($examQuestion) {
+            $question = $examQuestion->question;
+            $question->pivot_order = $examQuestion->order;
+            return $question;
+        })
+        ->filter();
 
     return response()->json([
         'success' => true,
