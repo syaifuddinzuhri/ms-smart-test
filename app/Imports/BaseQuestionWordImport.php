@@ -190,11 +190,26 @@ abstract class BaseQuestionWordImport
     {
         if (empty($html))
             return "";
+
+        // Extract img tags before LaTeX processing to prevent the underscore/caret
+        // math regex from corrupting src attribute paths (e.g. temp_media_XxXx).
+        $imgMap = [];
+        $html = preg_replace_callback('/<img\b[^>]*>/i', function ($m) use (&$imgMap) {
+            $key = 'IMGPLACEHOLDER' . count($imgMap) . 'END';
+            $imgMap[$key] = $m[0];
+            return $key;
+        }, $html);
+
         $html = html_entity_decode($html);
         $html = $this->cleanLatex($html);
         $html = $this->convertHtmlMathToLatex($html);
-
         $html = preg_replace('/<table[^>]*>.*?<\/table>/is', '', $html);
+
+        // Restore img tags with their original src intact
+        foreach ($imgMap as $key => $imgTag) {
+            $html = str_replace($key, $imgTag, $html);
+        }
+
         $allowedTags = '<span><strong><em><u><s><ul><ol><li><p><br><i><b><mark><sub><sup><math><img><div>';
         return trim($this->cleanLatex(strip_tags($html, $allowedTags)));
     }
@@ -209,26 +224,40 @@ abstract class BaseQuestionWordImport
         $dom->loadHTML('<?xml encoding="UTF-8"><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
 
-        $images = $dom->getElementsByTagName('img');
-        foreach ($images as $img) {
+        // Collect into array first to avoid live NodeList mutation issues during removeChild
+        $imageList = [];
+        foreach ($dom->getElementsByTagName('img') as $img) {
+            $imageList[] = $img;
+        }
+
+        foreach ($imageList as $img) {
             $src = $img->getAttribute('src');
 
             $sourcePath = null;
 
             if (file_exists($src)) {
+                // Absolute path from pandoc
                 $sourcePath = $src;
             } elseif (file_exists('/' . $src)) {
                 $sourcePath = '/' . $src;
             } else {
-                $cleanSrc = ltrim($src, './');
-                $testPath = $this->tempMediaPath . DIRECTORY_SEPARATOR . $cleanSrc;
+                $cleanSrc = ltrim($src, './\\');
+                // Pandoc writes img src relative to the temp HTML file location (storage/app/).
+                // Resolve relative to storage/app/ to get the absolute path.
+                $testPath = storage_path('app') . DIRECTORY_SEPARATOR . $cleanSrc;
                 if (file_exists($testPath)) {
                     $sourcePath = $testPath;
+                } else {
+                    // Fallback: try relative to tempMediaPath itself (e.g. only "media/image.png")
+                    $testPath2 = $this->tempMediaPath . DIRECTORY_SEPARATOR . $cleanSrc;
+                    if (file_exists($testPath2)) {
+                        $sourcePath = $testPath2;
+                    }
                 }
             }
 
             if ($sourcePath && file_exists($sourcePath)) {
-                $extension = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                $extension = pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png';
                 $filename = "img_" . Str::random(10) . "." . $extension;
 
                 $storageFolder = "questions/{$questionId}";
@@ -237,11 +266,12 @@ abstract class BaseQuestionWordImport
                 Storage::disk('public')->put($storagePath, file_get_contents($sourcePath));
 
                 $img->setAttribute('src', Storage::url($storagePath));
-
                 $img->setAttribute('style', 'max-width: 50%; height: auto;');
                 $img->setAttribute('class', 'rounded-lg shadow-sm my-2');
             } else {
-                $img->parentNode->removeChild($img);
+                if ($img->parentNode) {
+                    $img->parentNode->removeChild($img);
+                }
             }
         }
 
