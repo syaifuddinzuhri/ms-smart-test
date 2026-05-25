@@ -119,10 +119,6 @@ class EditExam extends EditRecord
 
     protected function getFormActions(): array
     {
-        if ($this->getRecord()->is_lock) {
-            return [];
-        }
-
         return parent::getFormActions();
     }
 
