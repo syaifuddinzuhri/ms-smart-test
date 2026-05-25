@@ -77,17 +77,49 @@ class EditExam extends EditRecord
 
     public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
     {
+        if ($this->getRecord()->is_lock) {
+            $this->saveSistemPoinOnly($shouldRedirect);
+            return;
+        }
+
         try {
             parent::save($shouldRedirect);
         } catch (ValidationException $e) {
-
             Notification::make()
                 ->title('Validasi Gagal')
                 ->body('Masih ada isian yang belum valid. Silakan periksa kembali form.')
                 ->danger()
                 ->send();
 
-            throw $e; // penting
+            throw $e;
+        }
+    }
+
+    private function saveSistemPoinOnly(bool $shouldRedirect): void
+    {
+        $sistemPoinFields = [
+            'point_pg', 'point_pg_wrong', 'point_pg_null',
+            'point_true_false', 'point_true_false_wrong', 'point_true_false_null',
+            'point_short_answer', 'point_short_answer_wrong', 'point_short_answer_null',
+            'point_essay_max', 'point_essay_null',
+        ];
+
+        try {
+            $data = collect($this->data)->only($sistemPoinFields)->toArray();
+
+            DB::transaction(fn() => $this->getRecord()->update($data));
+
+            $this->getSavedNotification()?->send();
+
+            if ($shouldRedirect) {
+                $this->redirect($this->getRedirectUrl());
+            }
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Gagal Memperbarui Ujian')
+                ->body('Kesalahan: ' . $e->getMessage())
+                ->danger()
+                ->send();
         }
     }
 
