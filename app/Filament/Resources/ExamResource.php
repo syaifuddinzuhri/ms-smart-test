@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Enums\ExamSessionStatus;
 use App\Enums\ExamStatus;
 use App\Enums\UserRole;
+use App\Models\ExamSession;
+use App\Services\ExamService;
 use App\Filament\Resources\ExamResource\Pages;
 use App\Helpers\ExamTimeHelper;
 use App\Models\Exam;
@@ -485,6 +487,57 @@ class ExamResource extends Resource
                             ]);
                         })
                         ->visible(fn(Exam $record) => !$record->is_lock),
+                    Tables\Actions\Action::make('resyncScores')
+                        ->label('Hitung Ulang Skor')
+                        ->icon('heroicon-m-arrow-path')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hitung Ulang Skor Ujian')
+                        ->modalDescription('Semua skor jawaban dan nilai akhir akan dihitung ulang berdasarkan poin yang berlaku saat ini. Essay tidak terpengaruh.')
+                        ->modalSubmitActionLabel('Ya, Resync Sekarang')
+                        ->visible(
+                            fn(Exam $record) => $record->is_lock && $record->completed_sessions_count > 0
+                        )
+                        ->action(function (Exam $record) {
+                            $service = app(ExamService::class);
+
+                            $sessions = ExamSession::where('exam_id', $record->id)
+                                ->whereIn('status', [
+                                    ExamSessionStatus::COMPLETED,
+                                    ExamSessionStatus::ONGOING,
+                                    ExamSessionStatus::PAUSE,
+                                ])
+                                ->get();
+
+                            $successCount = 0;
+                            $failCount = 0;
+
+                            foreach ($sessions as $session) {
+                                try {
+                                    DB::transaction(function () use ($session, $service) {
+                                        $service->resyncAnswerScores($session);
+                                        $service->syncSessionScores($session);
+                                    });
+                                    $successCount++;
+                                } catch (\Exception $e) {
+                                    $failCount++;
+                                }
+                            }
+
+                            if ($failCount > 0) {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Hitung Ulang Selesai dengan Peringatan')
+                                    ->body("Berhasil: {$successCount} sesi | Gagal: {$failCount} sesi.")
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->success()
+                                    ->title('Hitung Ulang Skor Berhasil')
+                                    ->body("Semua {$successCount} sesi berhasil diperbarui.")
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\Action::make('toggleShowResult')
                         ->label(
                             fn(Exam $record) => $record->show_result_to_student
@@ -758,6 +811,9 @@ class ExamResource extends Resource
                 'subject'
             ])
             ->withCount([
+                'sessions as completed_sessions_count' => function (Builder $query) {
+                    $query->where('status', ExamSessionStatus::COMPLETED);
+                },
                 'questions as pg_count' => function (Builder $query) {
                     $query->whereIn('question_type', [
                         \App\Enums\QuestionType::SINGLE_CHOICE->value,

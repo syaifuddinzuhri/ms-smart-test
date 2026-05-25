@@ -280,6 +280,76 @@ class ExamService
         $this->updateIncrementalScore($answer->session, $answer->question->question_type, $oldScore, $newScore);
     }
 
+    /**
+     * Hitung ulang is_correct dan score semua jawaban non-essay dalam satu sesi,
+     * berdasarkan poin terkini dari ujian. Dipanggil sebelum syncSessionScores().
+     */
+    public function resyncAnswerScores(ExamSession $session): void
+    {
+        $session->loadMissing(['exam.questions.options']);
+        $exam = $session->exam;
+
+        $answers = ExamAnswer::with(['question.options', 'selectedOptions'])
+            ->where('exam_session_id', $session->id)
+            ->get();
+
+        foreach ($answers as $answer) {
+            $question = $answer->question;
+
+            if ($question->isEssay()) {
+                continue;
+            }
+
+            $hasContent = $question->isPg()
+                ? $answer->selectedOptions->count() > 0
+                : trim(strip_tags($answer->answer_text ?? '')) !== '';
+
+            if (!$hasContent) {
+                continue;
+            }
+
+            [$isCorrect, $newScore] = $this->resolveAnswerResult($answer, $question, $exam);
+
+            $answer->update(['is_correct' => $isCorrect, 'score' => $newScore]);
+        }
+    }
+
+    private function resolveAnswerResult(ExamAnswer $answer, $question, Exam $exam): array
+    {
+        $isCorrect = false;
+
+        if ($question->question_type === QuestionType::SINGLE_CHOICE || $question->question_type === QuestionType::TRUE_FALSE) {
+            $correct = $question->options->where('is_correct', true)->first();
+            $selected = $answer->selectedOptions->first();
+            $isCorrect = $selected && $correct && $selected->id === $correct->id;
+        } elseif ($question->question_type === QuestionType::MULTIPLE_CHOICE) {
+            $correctIds = $question->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
+            $selectedIds = $answer->selectedOptions->pluck('id')->sort()->values()->toArray();
+            $isCorrect = $correctIds === $selectedIds;
+        } elseif ($question->question_type === QuestionType::SHORT_ANSWER) {
+            $studentText = trim(strtolower($answer->answer_text ?? ''));
+            $keys = collect(explode('|', $question->correct_answer_text ?? ''))
+                ->map(fn($k) => trim(strtolower($k)))->filter();
+            $isCorrect = $keys->contains($studentText);
+        }
+
+        $newScore = $isCorrect
+            ? match (true) {
+                $question->isTrueFalse() => (float) $exam->point_true_false,
+                $question->isPg() => (float) $exam->point_pg,
+                $question->isShortAnswer() => (float) $exam->point_short_answer,
+                default => 0,
+            }
+            : match (true) {
+                $question->isTrueFalse() => -(float) $exam->point_true_false_wrong,
+                $question->isPg() => -(float) $exam->point_pg_wrong,
+                $question->isShortAnswer() => -(float) $exam->point_short_answer_wrong,
+                default => 0,
+            };
+
+        return [$isCorrect, $newScore];
+    }
+
     public function calculateFinalScore(Exam $exam, float $rawTotal): float
     {
         // PASTIKAN NAMA KOLOM BENAR: target_max_score

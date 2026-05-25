@@ -3,9 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\ExamSessionStatus;
-use App\Enums\QuestionType;
 use App\Models\Exam;
-use App\Models\ExamAnswer;
 use App\Models\ExamSession;
 use App\Services\ExamService;
 use Illuminate\Console\Command;
@@ -29,15 +27,15 @@ class ResyncExamScores extends Command
         $examId = $this->argument('examId');
         $isDryRun = $this->option('dry-run');
 
-        $exam = Exam::with(['questions.options'])->find($examId);
+        $exam = Exam::find($examId);
 
         if (!$exam) {
             $this->error("Ujian dengan ID '{$examId}' tidak ditemukan.");
             return self::FAILURE;
         }
 
-        $this->info("Ujian   : {$exam->title}");
-        $this->info("Poin PG : {$exam->point_pg} | Poin TF: {$exam->point_true_false} | Poin Isian: {$exam->point_short_answer}");
+        $this->info("Ujian    : {$exam->title}");
+        $this->info("Poin PG  : {$exam->point_pg} | TF: {$exam->point_true_false} | Isian: {$exam->point_short_answer}");
 
         if ($isDryRun) {
             $this->warn("[DRY RUN] Mode simulasi aktif — tidak ada data yang akan diubah.");
@@ -67,44 +65,12 @@ class ResyncExamScores extends Command
 
         foreach ($sessions as $session) {
             try {
-                DB::transaction(function () use ($session, $exam, $isDryRun) {
-                    $answers = ExamAnswer::with(['question.options', 'selectedOptions'])
-                        ->where('exam_session_id', $session->id)
-                        ->get();
-
-                    foreach ($answers as $answer) {
-                        $question = $answer->question;
-
-                        // Essay: skor manual, tidak dihitung ulang
-                        if ($question->isEssay()) {
-                            continue;
-                        }
-
-                        $hasContent = $question->isPg()
-                            ? $answer->selectedOptions->count() > 0
-                            : trim(strip_tags($answer->answer_text ?? '')) !== '';
-
-                        // Jawaban kosong: syncSessionScores sudah menangani pinalti null
-                        if (!$hasContent) {
-                            continue;
-                        }
-
-                        $isCorrect = $this->determineIsCorrect($answer, $question);
-                        $newScore = $this->computeScore($isCorrect, $question, $exam);
-
-                        if (!$isDryRun) {
-                            $answer->update([
-                                'is_correct' => $isCorrect,
-                                'score' => $newScore,
-                            ]);
-                        }
-                    }
-
-                    if (!$isDryRun) {
+                if (!$isDryRun) {
+                    DB::transaction(function () use ($session) {
+                        $this->examService->resyncAnswerScores($session);
                         $this->examService->syncSessionScores($session);
-                    }
-                });
-
+                    });
+                }
                 $successCount++;
             } catch (\Exception $e) {
                 $this->newLine();
@@ -125,60 +91,5 @@ class ResyncExamScores extends Command
         }
 
         return $failCount > 0 ? self::FAILURE : self::SUCCESS;
-    }
-
-    private function determineIsCorrect(ExamAnswer $answer, $question): bool
-    {
-        return match ($question->question_type) {
-            QuestionType::SINGLE_CHOICE, QuestionType::TRUE_FALSE => $this->checkSingleChoice($answer, $question),
-            QuestionType::MULTIPLE_CHOICE => $this->checkMultipleChoice($answer, $question),
-            QuestionType::SHORT_ANSWER => $this->checkShortAnswer($answer, $question),
-            default => false,
-        };
-    }
-
-    private function checkSingleChoice(ExamAnswer $answer, $question): bool
-    {
-        $correctOption = $question->options->where('is_correct', true)->first();
-        $selectedOption = $answer->selectedOptions->first();
-
-        return $selectedOption && $correctOption && ($selectedOption->id === $correctOption->id);
-    }
-
-    private function checkMultipleChoice(ExamAnswer $answer, $question): bool
-    {
-        $correctIds = $question->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-        $selectedIds = $answer->selectedOptions->pluck('id')->sort()->values()->toArray();
-
-        return $correctIds === $selectedIds;
-    }
-
-    private function checkShortAnswer(ExamAnswer $answer, $question): bool
-    {
-        $studentText = trim(strtolower($answer->answer_text ?? ''));
-        $keys = collect(explode('|', $question->correct_answer_text ?? ''))
-            ->map(fn($k) => trim(strtolower($k)))
-            ->filter();
-
-        return $keys->contains($studentText);
-    }
-
-    private function computeScore(bool $isCorrect, $question, Exam $exam): float
-    {
-        if ($isCorrect) {
-            return match (true) {
-                $question->isTrueFalse() => (float) $exam->point_true_false,
-                $question->isPg() => (float) $exam->point_pg,
-                $question->isShortAnswer() => (float) $exam->point_short_answer,
-                default => 0,
-            };
-        }
-
-        return match (true) {
-            $question->isTrueFalse() => -(float) $exam->point_true_false_wrong,
-            $question->isPg() => -(float) $exam->point_pg_wrong,
-            $question->isShortAnswer() => -(float) $exam->point_short_answer_wrong,
-            default => 0,
-        };
     }
 }
