@@ -162,6 +162,12 @@ class ExamResultResource extends Resource
                     })
             ])
             ->filters([
+                SelectFilter::make('exam')
+                    ->label('Nama Ujian')
+                    ->relationship('exam', 'title')
+                    ->searchable()
+                    ->preload(),
+
                 SelectFilter::make('exam_category')
                     ->label('Kategori Ujian')
                     ->options(ExamCategory::pluck('name', 'id'))
