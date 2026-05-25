@@ -72,7 +72,7 @@ class EditExam extends EditRecord
         return Notification::make()
             ->success()
             ->title('Ujian Diperbarui')
-            ->body('Perubahan data ujian dan target kelas berhasil disimpan.');
+            ->body('Perubahan data ujian berhasil disimpan.');
     }
 
     public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
