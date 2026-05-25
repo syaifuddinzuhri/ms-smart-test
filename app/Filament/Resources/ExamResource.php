@@ -15,6 +15,7 @@ use App\Models\Subject;
 use Carbon\Carbon;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -59,107 +60,131 @@ class ExamResource extends Resource
     {
         return $form
             ->schema([
+                Placeholder::make('lock_notice')
+                    ->label('')
+                    ->content(new HtmlString('
+                        <div class="flex items-start gap-3 p-4 rounded-xl border border-warning-300 bg-warning-50">
+                            <svg class="w-5 h-5 mt-0.5 text-warning-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-sm text-warning-800">Ujian Terkunci</p>
+                                <p class="text-sm text-warning-700 mt-0.5">
+                                    Ujian ini sudah dikunci. Sebagian besar pengaturan tidak dapat diubah.<br>
+                                    Hanya tab <strong>Sistem Poin</strong> yang masih bisa diperbarui untuk keperluan penyesuaian poin jawaban.
+                                </p>
+                            </div>
+                        </div>
+                    '))
+                    ->columnSpanFull()
+                    ->visible(fn(?Exam $record) => (bool) $record?->is_lock),
                 Tabs::make('Setup Ujian')
                     ->tabs([
                         Tab::make('Informasi Dasar')
                             ->schema([
-                                Select::make('exam_category_id')
-                                    ->label('Kategori')
-                                    ->relationship('category', 'name')
-                                    ->required()
-                                    ->live()
-                                    ->searchable()
-                                    ->preload()
-                                    ->getOptionLabelFromRecordUsing(fn($record) => $record->name)
-                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::updateTitle($set, $get)),
-                                Select::make('subject_id')
-                                    ->label('Mata Pelajaran')
-                                    ->relationship('subject', 'name')
-                                    ->required()
-                                    ->searchable()
-                                    ->preload()
-                                    ->live()
-                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::updateTitle($set, $get)),
-                                TextInput::make('title')
-                                    ->label('Judul Ujian')
-                                    ->required()
-                                    ->placeholder('Contoh: UTS Matematika Gasal'),
-                                TextInput::make('duration')
-                                    ->label('Durasi Awal (Menit)')
-                                    ->numeric()
-                                    ->suffix('Menit')
-                                    ->required(),
-                                DateTimePicker::make('start_time')
-                                    ->label('Waktu Mulai')
-                                    ->required()
-                                    ->native(false)
-                                    ->displayFormat('d/m/Y H:i')
-                                    ->format('Y-m-d H:i:00')
-                                    ->seconds(false)
-                                    ->afterOrEqual(now()->startOfMinute())
-                                    ->validationMessages([
-                                        'after_or_equal' => 'Waktu mulai tidak boleh kurang dari waktu sekarang.',
-                                    ]),
-
-                                DateTimePicker::make('end_time')
-                                    ->label('Waktu Selesai')
-                                    ->required()
-                                    ->native(false)
-                                    ->displayFormat('d/m/Y H:i')
-                                    ->format('Y-m-d H:i:00')
-                                    ->seconds(false)
-                                    ->after('start_time')
-                                    ->validationMessages([
-                                        'after' => 'Waktu selesai harus lebih besar dari waktu mulai.',
-                                    ]),
-                            ])->columns(2),
+                                Group::make([
+                                    Select::make('exam_category_id')
+                                        ->label('Kategori')
+                                        ->relationship('category', 'name')
+                                        ->required()
+                                        ->live()
+                                        ->searchable()
+                                        ->preload()
+                                        ->getOptionLabelFromRecordUsing(fn($record) => $record->name)
+                                        ->afterStateUpdated(fn(Set $set, Get $get) => self::updateTitle($set, $get)),
+                                    Select::make('subject_id')
+                                        ->label('Mata Pelajaran')
+                                        ->relationship('subject', 'name')
+                                        ->required()
+                                        ->searchable()
+                                        ->preload()
+                                        ->live()
+                                        ->afterStateUpdated(fn(Set $set, Get $get) => self::updateTitle($set, $get)),
+                                    TextInput::make('title')
+                                        ->label('Judul Ujian')
+                                        ->required()
+                                        ->placeholder('Contoh: UTS Matematika Gasal'),
+                                    TextInput::make('duration')
+                                        ->label('Durasi Awal (Menit)')
+                                        ->numeric()
+                                        ->suffix('Menit')
+                                        ->required(),
+                                    DateTimePicker::make('start_time')
+                                        ->label('Waktu Mulai')
+                                        ->required()
+                                        ->native(false)
+                                        ->displayFormat('d/m/Y H:i')
+                                        ->format('Y-m-d H:i:00')
+                                        ->seconds(false)
+                                        ->afterOrEqual(now()->startOfMinute())
+                                        ->validationMessages([
+                                            'after_or_equal' => 'Waktu mulai tidak boleh kurang dari waktu sekarang.',
+                                        ]),
+                                    DateTimePicker::make('end_time')
+                                        ->label('Waktu Selesai')
+                                        ->required()
+                                        ->native(false)
+                                        ->displayFormat('d/m/Y H:i')
+                                        ->format('Y-m-d H:i:00')
+                                        ->seconds(false)
+                                        ->after('start_time')
+                                        ->validationMessages([
+                                            'after' => 'Waktu selesai harus lebih besar dari waktu mulai.',
+                                        ]),
+                                ])
+                                ->disabled(fn(?Exam $record) => $record && $record?->is_lock)
+                                ->columns(2),
+                            ]),
 
                         Tab::make('Target Peserta')
                             ->schema([
-                                Repeater::make('examClassrooms')
-                                    ->label('')
-                                    ->schema([
-                                        Select::make('classroom_id')
-                                            ->label('Kelas')
-                                            ->searchable()
-                                            ->preload()
-                                            ->required()
-                                            ->distinct()
-                                            ->options(function ($get, $state) {
-                                                $selected = collect($get('../../examClassrooms') ?? [])
-                                                    ->pluck('classroom_id')
-                                                    ->filter()
-                                                    ->reject(fn($id) => $id === $state);
+                                Group::make([
+                                    Repeater::make('examClassrooms')
+                                        ->label('')
+                                        ->schema([
+                                            Select::make('classroom_id')
+                                                ->label('Kelas')
+                                                ->searchable()
+                                                ->preload()
+                                                ->required()
+                                                ->distinct()
+                                                ->options(function ($get, $state) {
+                                                    $selected = collect($get('../../examClassrooms') ?? [])
+                                                        ->pluck('classroom_id')
+                                                        ->filter()
+                                                        ->reject(fn($id) => $id === $state);
 
-                                                return \App\Models\Classroom::query()
-                                                    ->whereNotIn('id', $selected)
-                                                    ->get()
-                                                    ->mapWithKeys(fn($item) => [
-                                                        $item->id => $item->name
-                                                    ]);
-                                            })
-                                            ->getOptionLabelUsing(function ($value) {
-                                                return \App\Models\Classroom::find($value)?->name;
-                                            }),
+                                                    return \App\Models\Classroom::query()
+                                                        ->whereNotIn('id', $selected)
+                                                        ->get()
+                                                        ->mapWithKeys(fn($item) => [
+                                                            $item->id => $item->name
+                                                        ]);
+                                                })
+                                                ->getOptionLabelUsing(function ($value) {
+                                                    return \App\Models\Classroom::find($value)?->name;
+                                                }),
 
-                                        TextInput::make('min_total_score')
-                                            ->label('KKM / Minimal Lulus')
-                                            ->numeric()
-                                            ->default(80)
-                                            ->inputMode('numeric')
-                                            ->minValue(0)
-                                            ->step(1)
-                                            ->integer()
-                                            ->helperText('Nilai minimal untuk lulus di kelas ini.')
-                                            ->suffix('Poin'),
-                                    ])
-                                    ->columns(2)
-                                    ->minItems(1)
-                                    ->defaultItems(1)
-                                    ->addActionLabel('Tambah Target')
-                                    ->deleteAction(fn($action) => $action->visible(fn($get) => count($get('classrooms') ?? []) > 1))
-                                    ->columnSpanFull(),
-                            ])->columns(2),
+                                            TextInput::make('min_total_score')
+                                                ->label('KKM / Minimal Lulus')
+                                                ->numeric()
+                                                ->default(80)
+                                                ->inputMode('numeric')
+                                                ->minValue(0)
+                                                ->step(1)
+                                                ->integer()
+                                                ->helperText('Nilai minimal untuk lulus di kelas ini.')
+                                                ->suffix('Poin'),
+                                        ])
+                                        ->columns(2)
+                                        ->minItems(1)
+                                        ->defaultItems(1)
+                                        ->addActionLabel('Tambah Target')
+                                        ->deleteAction(fn($action) => $action->visible(fn($get) => count($get('classrooms') ?? []) > 1))
+                                        ->columnSpanFull(),
+                                ])
+                                ->disabled(fn(?Exam $record) => $record && $record?->is_lock),
+                            ]),
 
                         Tab::make('Sistem Poin')
                             ->schema([
@@ -320,50 +345,52 @@ class ExamResource extends Resource
                             ]),
                         Tab::make('Pengaturan & Keamanan')
                             ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                        Section::make('Metode Pengacakan')
-                                            ->description('Tentukan bagaimana sistem mengacak komponen ujian.')
-                                            ->schema([
-                                                Select::make('random_question_type')
-                                                    ->label('Acak Urutan Soal')
-                                                    ->options([
-                                                        0 => 'Matikan (Urutan Tetap)',
-                                                        1 => 'Individu (Tiap peserta mendapatkan urutan berbeda)',
-                                                        2 => 'Massal (Satu urutan acak untuk semua peserta)',
-                                                    ])
-                                                    ->default(0)
-                                                    ->native(false)
-                                                    ->selectablePlaceholder(false),
+                                Group::make([
+                                    Grid::make(2)
+                                        ->schema([
+                                            Section::make('Metode Pengacakan')
+                                                ->description('Tentukan bagaimana sistem mengacak komponen ujian.')
+                                                ->schema([
+                                                    Select::make('random_question_type')
+                                                        ->label('Acak Urutan Soal')
+                                                        ->options([
+                                                            0 => 'Matikan (Urutan Tetap)',
+                                                            1 => 'Individu (Tiap peserta mendapatkan urutan berbeda)',
+                                                            2 => 'Massal (Satu urutan acak untuk semua peserta)',
+                                                        ])
+                                                        ->default(0)
+                                                        ->native(false)
+                                                        ->selectablePlaceholder(false),
 
-                                                \Filament\Forms\Components\Toggle::make('random_option_type')
-                                                    ->label('Acak Pilihan Jawaban')
-                                                    ->helperText('Jika aktif, urutan opsi (A, B, C, D, E) akan diacak untuk setiap peserta.')
-                                                    ->default(false),
-                                            ])->columnSpan(1),
+                                                    \Filament\Forms\Components\Toggle::make('random_option_type')
+                                                        ->label('Acak Pilihan Jawaban')
+                                                        ->helperText('Jika aktif, urutan opsi (A, B, C, D, E) akan diacak untuk setiap peserta.')
+                                                        ->default(false),
+                                                ])->columnSpan(1),
 
-                                        Section::make('Hasil & Transparansi')
-                                            ->description('Pengaturan pasca ujian selesai.')
-                                            ->schema([
-                                                \Filament\Forms\Components\Toggle::make('show_result_to_student')
-                                                    ->label('Tampilkan Nilai ke Peserta')
-                                                    ->helperText('Peserta dapat melihat skor akhir setelah mereka menyelesaikan ujian.')
-                                                    ->default(false),
-                                                TextInput::make('target_max_score')
-                                                    ->label('Skala Skor Akhir')
-                                                    ->numeric()
-                                                    ->default(100)
-                                                    ->nullable() // Mengizinkan field dikosongkan (null)
-                                                    ->minValue(100) // Jika diisi, minimal 100
-                                                    ->maxValue(1000) // Jika diisi, maksimal 1000
-                                                    ->placeholder('Contoh: 100') // Memberi petunjuk visual
-                                                    ->helperText('Kosongkan jika ingin menggunakan poin akumulasi mentah. Jika diisi (min: 100, max: 1000), nilai akhir akan dikonversi otomatis ke skala ini (misal: Skala 100).')
-                                            ])->columnSpan(1),
-                                    ]),
+                                            Section::make('Hasil & Transparansi')
+                                                ->description('Pengaturan pasca ujian selesai.')
+                                                ->schema([
+                                                    \Filament\Forms\Components\Toggle::make('show_result_to_student')
+                                                        ->label('Tampilkan Nilai ke Peserta')
+                                                        ->helperText('Peserta dapat melihat skor akhir setelah mereka menyelesaikan ujian.')
+                                                        ->default(false),
+                                                    TextInput::make('target_max_score')
+                                                        ->label('Skala Skor Akhir')
+                                                        ->numeric()
+                                                        ->default(100)
+                                                        ->nullable()
+                                                        ->minValue(100)
+                                                        ->maxValue(1000)
+                                                        ->placeholder('Contoh: 100')
+                                                        ->helperText('Kosongkan jika ingin menggunakan poin akumulasi mentah. Jika diisi (min: 100, max: 1000), nilai akhir akan dikonversi otomatis ke skala ini (misal: Skala 100).')
+                                                ])->columnSpan(1),
+                                        ]),
+                                ])
+                                ->disabled(fn(?Exam $record) => $record && $record?->is_lock),
                             ]),
                     ])->columnSpanFull(),
-            ])
-            ->disabled(fn(?Exam $record) => $record && $record?->is_lock);
+            ]);
     }
 
     protected static function updateTitle(Set $set, Get $get): void
@@ -494,7 +521,7 @@ class ExamResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Hitung Ulang Skor Ujian')
                         ->modalDescription('Semua skor jawaban dan nilai akhir akan dihitung ulang berdasarkan poin yang berlaku saat ini. Essay tidak terpengaruh.')
-                        ->modalSubmitActionLabel('Ya, Resync Sekarang')
+                        ->modalSubmitActionLabel('Ya, Hitung Ulang Sekarang')
                         ->visible(
                             fn(Exam $record) => $record->is_lock && $record->completed_sessions_count > 0
                         )
