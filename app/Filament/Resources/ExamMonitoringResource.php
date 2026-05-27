@@ -4,10 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Enums\ExamSessionStatus;
 use App\Filament\Resources\ExamMonitoringResource\Traits\HasMonitoringActions;
-use App\Models\Classroom;
-use App\Models\ExamCategory;
+use App\Models\Exam;
 use App\Models\ExamSession;
-use App\Models\Subject;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -16,7 +14,6 @@ use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Support\HtmlString;
 
 class ExamMonitoringResource extends Resource
@@ -37,8 +34,7 @@ class ExamMonitoringResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->where('status', '!=', ExamSessionStatus::COMPLETED);
+        return parent::getEloquentQuery()->where('status', '!=', ExamSessionStatus::COMPLETED);
     }
 
     public static function table(Table $table): Table
@@ -173,67 +169,24 @@ class ExamMonitoringResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // 1. FILTER KATEGORI UJIAN (Relasi: ExamSession -> Exam -> Category)
-                SelectFilter::make('exam_category')
-                    ->label('Kategori Ujian')
-                    ->options(ExamCategory::pluck('name', 'id')) // Ambil data langsung dari model Category
+                SelectFilter::make('exam')
+                    ->label('Pilih Ujian yang Dimonitor')
+                    ->options(Exam::orderByDesc('created_at')->pluck('title', 'id'))
                     ->searchable()
                     ->preload()
+                    ->placeholder('-- Pilih Ujian --')
                     ->query(function (Builder $query, array $data) {
                         if (filled($data['value'] ?? null)) {
-                            $query->whereHas('exam', fn($q) => $q->where('exam_category_id', $data['value']));
+                            $query->where('exam_id', $data['value']);
+                        } else {
+                            $query->whereRaw('1 = 0');
                         }
                     }),
-
-                // 2. FILTER KELAS (Relasi: ExamSession -> User -> Student -> Classroom)
-                SelectFilter::make('classroom')
-                    ->label('Kelas')
-                    ->options(Classroom::all()->mapWithKeys(function ($classroom) {
-                        $label = "{$classroom->code}";
-                        return [$classroom->id => $label];
-                    }))
-                    ->searchable()
-                    ->preload()
-                    ->query(function (Builder $query, array $data) {
-                        if (filled($data['value'] ?? null)) {
-                            $query->whereHas('user.student', fn($q) => $q->where('classroom_id', $data['value']));
-                        }
-                    }),
-
-                // 3. FILTER MATA PELAJARAN (Relasi: ExamSession -> Exam -> Subject)
-                SelectFilter::make('subject')
-                    ->label('Mata Pelajaran')
-                    ->options(Subject::pluck('name', 'id'))
-                    ->searchable()
-                    ->preload()
-                    ->query(function (Builder $query, array $data) {
-                        if (filled($data['value'] ?? null)) {
-                            $query->whereHas('exam', fn($q) => $q->where('subject_id', $data['value']));
-                        }
-                    }),
-
-                // 4. FILTER MULTIPLE STATUS
-                SelectFilter::make('status')
-                    ->label('Status Sesi')
-                    ->options(ExamSessionStatus::withoutCompleted())
-                    ->query(function (Builder $query, array $data) {
-                        if (filled($data['value'] ?? null)) {
-                            $query->where('status', $data['value']);
-                        }
-                    }),
-
-                // 5. FILTER PELANGGARAN
-                TernaryFilter::make('has_violations')
-                    ->label('Ada Pelanggaran')
-                    ->placeholder('Semua Data')
-                    ->trueLabel('Hanya Yang Melanggar')
-                    ->falseLabel('Tanpa Pelanggaran')
-                    ->queries(
-                        true: fn(Builder $query) => $query->where('violation_count', '>', 0),
-                        false: fn(Builder $query) => $query->where('violation_count', 0),
-                    ),
-            ], layout: FiltersLayout::Modal)
-            ->filtersFormColumns(2)
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(1)
+            ->emptyStateHeading('Pilih Ujian Terlebih Dahulu')
+            ->emptyStateDescription('Gunakan filter di atas untuk memilih ujian yang ingin dimonitor.')
+            ->emptyStateIcon('heroicon-o-presentation-chart-line')
             ->actions(
                 static::getMonitoringTableActions()
             )

@@ -31,9 +31,6 @@ class ListExamMonitorings extends ManageRecords
         ];
     }
 
-    /**
-     * Mengirim data awal saat halaman pertama kali dimuat
-     */
     public function getWidgetData(): array
     {
         return [
@@ -41,12 +38,9 @@ class ListExamMonitorings extends ManageRecords
         ];
     }
 
-    /**
-     * Hook: Dipanggil saat filter atau pencarian berubah.
-     * Kita kirim data stats terbaru ke widget via event 'updateStats'
-     */
-    public function updatedTableFilters(): void
+    protected function handleTableFilterUpdates(): void
     {
+        parent::handleTableFilterUpdates();
         $this->dispatch('updateStats', stats: $this->getCurrentStats());
     }
 
@@ -55,11 +49,14 @@ class ListExamMonitorings extends ManageRecords
         $this->dispatch('updateStats', stats: $this->getCurrentStats());
     }
 
-    /**
-     * Fungsi Helper untuk menghitung statistik berdasarkan query tabel saat ini
-     */
-    protected function getCurrentStats(): array
+    protected function getCurrentStats(): ?array
     {
+        $examId = $this->tableFilters['exam']['value'] ?? null;
+
+        if (!filled($examId)) {
+            return null;
+        }
+
         $query = $this->getFilteredTableQuery();
 
         return [

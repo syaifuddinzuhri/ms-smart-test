@@ -30,7 +30,7 @@ class MonitoringOverview extends Widget
     /**
      * Fungsi untuk menerima kiriman data dari Page
      */
-    public function handleUpdateStats(array $stats): void
+    public function handleUpdateStats(?array $stats): void
     {
         $this->stats = $stats;
     }
