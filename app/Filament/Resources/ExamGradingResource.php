@@ -6,9 +6,7 @@ use App\Enums\ExamSessionStatus;
 use App\Enums\QuestionType;
 use App\Filament\Resources\ExamGradingResource\Pages;
 use App\Models\Exam;
-use App\Models\ExamAnswer;
 use App\Models\ExamSession;
-use App\Models\Classroom;
 use App\Services\ExamService;
 use Filament\Forms;
 use Filament\Forms\Components\TextInput;
@@ -19,6 +17,7 @@ use Filament\Support\Exceptions\Halt;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
@@ -97,22 +96,24 @@ class ExamGradingResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('classroom_id')
-                    ->label('Filter Kelas')
-                    ->options(Classroom::pluck('name', 'id'))
-                    ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
-                            $query->whereHas('user.student', fn($q) => $q->where('classroom_id', $data['value']));
-                        }
-                    })
-                    ->searchable(),
-
-                // Filter Berdasarkan Ujian
                 SelectFilter::make('exam_id')
-                    ->label('Filter Ujian')
-                    ->options(Exam::all()->pluck('title', 'id'))
-                    ->searchable(),
-            ])
+                    ->label('Pilih Ujian yang Dinilai')
+                    ->options(Exam::orderByDesc('created_at')->pluck('title', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('-- Pilih Ujian --')
+                    ->query(function (Builder $query, array $data) {
+                        if (filled($data['value'] ?? null)) {
+                            $query->where('exam_id', $data['value']);
+                        } else {
+                            $query->whereRaw('1 = 0');
+                        }
+                    }),
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(1)
+            ->emptyStateHeading('Pilih Ujian Terlebih Dahulu')
+            ->emptyStateDescription('Gunakan filter di atas untuk memilih ujian yang ingin dinilai.')
+            ->emptyStateIcon('heroicon-o-pencil-square')
             ->actions([
                 // AKSI UTAMA: Menilai Soal Manual (Essay & Short Answer)
                 Action::make('grade')
@@ -130,20 +131,108 @@ class ExamGradingResource extends Resource
                         </p>
                     </div>
                 "))
-                    // Mengambil hanya jawaban Essay & Short Answer
                     ->form(function (ExamSession $record) {
                         $answers = $record->answers()
                             ->whereHas('question', function ($q) {
                                 $q->whereIn('question_type', [QuestionType::SHORT_ANSWER, QuestionType::ESSAY]);
                             })->get();
 
-                        $fields = [];
+                        $shortAnswers = $answers->filter(fn($a) => !$a->question->isEssay())->values();
+                        $essayAnswers = $answers->filter(fn($a) => $a->question->isEssay())->values();
 
-                        $fields = [
+                        // --- Tab Isian Singkat ---
+                        $shortAnswerFields = [];
+                        if ($shortAnswers->isEmpty()) {
+                            $shortAnswerFields[] = Forms\Components\Placeholder::make('empty_short')
+                                ->label('')
+                                ->content('Tidak ada soal isian singkat untuk dinilai.');
+                        } else {
+                            foreach ($shortAnswers as $index => $answer) {
+                                $systemVerdict = match ($answer->is_correct) {
+                                    1  => ['label' => 'Benar', 'color' => 'bg-green-100 text-green-700 ring-1 ring-green-300', 'icon' => '✓'],
+                                    0 => ['label' => 'Salah', 'color' => 'bg-red-100 text-red-700 ring-1 ring-red-300',   'icon' => '✗'],
+                                    default => ['label' => 'Belum Dikoreksi', 'color' => 'bg-gray-100 text-gray-500 ring-1 ring-gray-300', 'icon' => '—'],
+                                };
+
+                                $shortAnswerFields[] = Forms\Components\Section::make("Soal #" . ($index + 1))
+                                    ->description(new HtmlString(
+                                        "<div class='prose max-w-none text-gray-800 soal-content'>{$answer->question->question_text}</div>"
+                                    ))
+                                    ->schema([
+                                        Forms\Components\Placeholder::make("jawaban_siswa_{$answer->id}")
+                                            ->label('Jawaban Siswa:')
+                                            ->content(new HtmlString(
+                                                "<div class='prose max-w-none text-gray-800 soal-content'>{$answer->answer_text}</div>"
+                                            )),
+
+                                        Forms\Components\Placeholder::make("kunci_jawaban_{$answer->id}")
+                                            ->label('Kunci Jawaban (Referensi):')
+                                            ->content(function () use ($answer) {
+                                                $keys = explode('|', $answer->question->correct_answer_text ?? '');
+                                                $badges = collect($keys)->map(fn($key) =>
+                                                    "<span class='inline-block px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded border border-green-200 dark:border-green-800 text-[11px] font-bold mr-1 mb-1 uppercase tracking-tight'>" . trim($key) . "</span>"
+                                                )->implode('');
+                                                return new HtmlString("<div class='mt-1 flex flex-wrap'>{$badges}</div>");
+                                            }),
+
+                                        Forms\Components\Placeholder::make("hasil_sistem_{$answer->id}")
+                                            ->label('Hasil Koreksi Sistem:')
+                                            ->content(new HtmlString("
+                                                <div class='flex items-center gap-2 mt-1'>
+                                                    <span class='inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold {$systemVerdict['color']}'>
+                                                        {$systemVerdict['icon']} {$systemVerdict['label']}
+                                                    </span>
+                                                </div>
+                                            ")),
+
+                                        ToggleButtons::make("status_{$answer->id}")
+                                            ->label('Validasi Manual (Override Sistem):')
+                                            ->options(['1' => 'Benar', '0' => 'Salah'])
+                                            ->colors(['1' => 'success', '0' => 'danger'])
+                                            ->icons(['1' => 'heroicon-m-check', '0' => 'heroicon-m-x-mark'])
+                                            ->default($answer->is_correct === null ? null : ($answer->is_correct ? '1' : '0'))
+                                            ->inline(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed();
+                            }
+                        }
+
+                        // --- Tab Essay ---
+                        $essayFields = [];
+                        if ($essayAnswers->isEmpty()) {
+                            $essayFields[] = Forms\Components\Placeholder::make('empty_essay')
+                                ->label('')
+                                ->content('Tidak ada soal essay untuk dinilai.');
+                        } else {
+                            foreach ($essayAnswers as $index => $answer) {
+                                $essayFields[] = Forms\Components\Section::make("Soal #" . ($index + 1))
+                                    ->description(new HtmlString(
+                                        "<div class='prose max-w-none text-gray-800 soal-content'>{$answer->question->question_text}</div>"
+                                    ))
+                                    ->schema([
+                                        Forms\Components\Placeholder::make("jawaban_siswa_{$answer->id}")
+                                            ->label('Jawaban Siswa:')
+                                            ->content(new HtmlString(
+                                                "<div class='prose max-w-none text-gray-800 soal-content'>{$answer->answer_text}</div>"
+                                            )),
+
+                                        TextInput::make("score_{$answer->id}")
+                                            ->label('Skor Essay')
+                                            ->numeric()
+                                            ->placeholder('Maks: ' . $record->exam->point_essay_max)
+                                            ->default($answer->score),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed();
+                            }
+                        }
+
+                        return [
                             Forms\Components\Placeholder::make('instruction')
                                 ->label('')
                                 ->content(new HtmlString("
-                                    <div class='flex p-4 mb-4 text-sm text-gray-800 rounded-lg bg-gray-50 border border-gray-100' role='alert'>
+                                    <div class='flex p-4 mb-2 text-sm text-gray-800 rounded-lg bg-gray-50 border border-gray-100' role='alert'>
                                         <svg class='flex-shrink-0 inline w-4 h-4 me-3 mt-[2px]' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='currentColor' viewBox='0 0 20 20'>
                                             <path d='M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z'/>
                                         </svg>
@@ -155,79 +244,19 @@ class ExamGradingResource extends Resource
                                             </ul>
                                         </div>
                                     </div>
-                                "))
+                                ")),
+
+                            Forms\Components\Tabs::make('Koreksi Jawaban')
+                                ->tabs([
+                                    Forms\Components\Tabs\Tab::make('Isian Singkat (' . $shortAnswers->count() . ')')
+                                        ->icon('heroicon-m-pencil')
+                                        ->schema($shortAnswerFields),
+
+                                    Forms\Components\Tabs\Tab::make('Essay (' . $essayAnswers->count() . ')')
+                                        ->icon('heroicon-m-document-text')
+                                        ->schema($essayFields),
+                                ]),
                         ];
-
-                        foreach ($answers as $index => $answer) {
-                            $isEssay = $answer->question->isEssay();
-
-                            $fields[] = Forms\Components\Section::make(new HtmlString("
-    <div class='flex justify-between items-center w-full pr-6'>
-        <span class='font-bold'>Soal #" . ($index + 1) . "</span>
-        <span class='text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-black " .
-                                ($answer->question->isEssay()
-                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400') . "'>
-            " . ($answer->question->isEssay() ? 'Essay' : 'Isian Singkat') . "
-        </span>
-    </div>
-"))
-                                ->description(new HtmlString(
-                                    "<div class='prose max-w-none text-gray-800 soal-content'>{$answer->question->question_text}</div>"
-                                ))
-                                ->schema([
-
-                                    Forms\Components\Placeholder::make('jawaban_siswa')
-                                        ->label('Jawaban Siswa:')
-                                        ->content(
-                                            new HtmlString(
-                                                "<div class='prose max-w-none text-gray-800 soal-content'>{$answer->answer_text}</div>"
-                                            )
-                                        ),
-
-                                    Forms\Components\Placeholder::make('kunci_jawaban')
-                                        ->label('Kunci Jawaban (Referensi):')
-                                        ->visible($answer->question->isShortAnswer()) // Hanya muncul di Isian Singkat
-                                        ->content(function () use ($answer) {
-                                            // Pecah kunci jawaban jika ada lebih dari satu (separator |)
-                                            $keys = explode('|', $answer->question->correct_answer_text ?? '');
-                                            $badges = collect($keys)->map(function ($key) {
-                                                return "<span class='inline-block px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded border border-green-200 dark:border-green-800 text-[11px] font-bold mr-1 mb-1 uppercase tracking-tight'>" . trim($key) . "</span>";
-                                            })->implode('');
-
-                                            return new HtmlString("<div class='mt-1 flex flex-wrap'>{$badges}</div>");
-                                        }),
-
-                                    Forms\Components\Grid::make(2)->schema([
-                                        ToggleButtons::make("status_{$answer->id}")
-                                            ->label('Validasi Jawaban')
-                                            ->options([
-                                                '1' => 'Benar',
-                                                '0' => 'Salah',
-                                            ])
-                                            ->colors(['1' => 'success', '0' => 'danger'])
-                                            ->icons(['1' => 'heroicon-m-check', '0' => 'heroicon-m-x-mark'])
-                                            ->default($answer->is_correct === null ? null : ($answer->is_correct ? '1' : '0'))
-                                            ->inline()
-                                            ->hidden($isEssay),
-
-                                        TextInput::make("score_{$answer->id}")
-                                            ->label('Skor (Hanya untuk Essay)')
-                                            ->numeric()
-                                            ->visible($answer->question->isEssay())
-                                            ->placeholder('Max: ' . $record->exam->point_essay_max)
-                                            ->default($answer->score),
-                                    ])
-                                ])->collapsible()
-                                ->collapsed();
-                        }
-
-                        if ($answers->isEmpty()) {
-                            $fields[] = Forms\Components\Placeholder::make('empty')
-                                ->content('Tidak ada soal Essay atau Isian Singkat untuk dinilai.');
-                        }
-
-                        return $fields;
                     })
                     ->action(function (array $data, ExamSession $record) {
                         $examService = app(ExamService::class);
