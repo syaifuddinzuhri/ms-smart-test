@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\ExamSessionStatus;
 use App\Enums\QuestionType;
 use App\Filament\Resources\ExamGradingResource\Pages;
+use App\Models\Classroom;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Services\ExamService;
@@ -109,8 +110,20 @@ class ExamGradingResource extends Resource
                             $query->whereRaw('1 = 0');
                         }
                     }),
+
+                SelectFilter::make('classroom')
+                    ->label('Kelas')
+                    ->options(Classroom::orderBy('code')->pluck('code', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Semua Kelas')
+                    ->query(function (Builder $query, array $data) {
+                        if (filled($data['value'] ?? null)) {
+                            $query->whereHas('user.student', fn($q) => $q->where('classroom_id', $data['value']));
+                        }
+                    }),
             ], layout: FiltersLayout::AboveContent)
-            ->filtersFormColumns(1)
+            ->filtersFormColumns(2)
             ->emptyStateHeading('Pilih Ujian Terlebih Dahulu')
             ->emptyStateDescription('Gunakan filter di atas untuk memilih ujian yang ingin dinilai.')
             ->emptyStateIcon('heroicon-o-pencil-square')

@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\ExamSessionStatus;
 use App\Filament\Resources\ExamResultResource\Traits\HasResultActions;
 use App\Models\Classroom;
-use App\Models\ExamCategory;
+use App\Models\Exam;
 use App\Models\ExamClassroom;
 use App\Models\ExamSession;
 use App\Services\ExamService;
@@ -162,45 +162,36 @@ class ExamResultResource extends Resource
                     })
             ])
             ->filters([
-                SelectFilter::make('exam')
+                SelectFilter::make('exam_id')
                     ->label('Nama Ujian')
-                    ->relationship('exam', 'title')
+                    ->options(Exam::orderByDesc('created_at')->pluck('title', 'id'))
                     ->searchable()
-                    ->preload(),
-
-                SelectFilter::make('exam_category')
-                    ->label('Kategori Ujian')
-                    ->options(ExamCategory::pluck('name', 'id'))
+                    ->preload()
+                    ->placeholder('-- Pilih Ujian --')
                     ->query(function (Builder $query, array $data) {
-                        if (filled($data['value'])) {
-                            $query->whereHas('exam', fn($q) => $q->where('exam_category_id', $data['value']));
+                        if (filled($data['value'] ?? null)) {
+                            $query->where('exam_id', $data['value']);
+                        } else {
+                            $query->whereRaw('1 = 0');
                         }
                     }),
 
                 SelectFilter::make('classroom')
                     ->label('Kelas')
-                    ->options(Classroom::pluck('code', 'id'))
+                    ->options(Classroom::orderBy('code')->pluck('code', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Semua Kelas')
                     ->query(function (Builder $query, array $data) {
-                        if (filled($data['value'])) {
+                        if (filled($data['value'] ?? null)) {
                             $query->whereHas('user.student', fn($q) => $q->where('classroom_id', $data['value']));
                         }
                     }),
-
-                SelectFilter::make('status_final')
-                    ->label('Status Koreksi')
-                    ->placeholder('Semua Status')
-                    ->options([
-                        'pending' => '⏳ Belum Final',
-                        'finalized' => '✅ Sudah Final',
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if ($data['value'] === 'pending') {
-                            $query->whereNull('finalized_at');
-                        } elseif ($data['value'] === 'finalized') {
-                            $query->whereNotNull('finalized_at');
-                        }
-                    }),
-            ], layout: FiltersLayout::Modal)
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(2)
+            ->emptyStateHeading('Pilih Ujian Terlebih Dahulu')
+            ->emptyStateDescription('Gunakan filter di atas untuk memilih ujian yang ingin dilihat hasilnya.')
+            ->emptyStateIcon('heroicon-o-document-check')
             ->actions(
                 static::getMonitoringTableActions()
             )
