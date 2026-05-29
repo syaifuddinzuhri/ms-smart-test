@@ -161,9 +161,8 @@ class ExamResource extends Resource
                                                             $item->id => $item->name
                                                         ]);
                                                 })
-                                                ->getOptionLabelUsing(function ($value) {
-                                                    return \App\Models\Classroom::find($value)?->name;
-                                                }),
+                                                ->getOptionLabelUsing(fn($value) => \App\Models\Classroom::find($value)?->name)
+                                                ->disabled(fn(?Exam $record) => $record && $record?->is_lock),
 
                                             TextInput::make('min_total_score')
                                                 ->label('KKM / Minimal Lulus')
@@ -180,10 +179,11 @@ class ExamResource extends Resource
                                         ->minItems(1)
                                         ->defaultItems(1)
                                         ->addActionLabel('Tambah Target')
-                                        ->deleteAction(fn($action) => $action->visible(fn($get) => count($get('classrooms') ?? []) > 1))
+                                        ->addAction(fn($action) => $action->hidden(fn(?Exam $record) => $record && $record?->is_lock))
+                                        ->deleteAction(fn($action) => $action->hidden(fn(?Exam $record) => $record && $record?->is_lock))
+                                        ->reorderable(fn(?Exam $record) => !($record && $record?->is_lock))
                                         ->columnSpanFull(),
-                                ])
-                                ->disabled(fn(?Exam $record) => $record && $record?->is_lock),
+                                ]),
                             ]),
 
                         Tab::make('Sistem Poin')
