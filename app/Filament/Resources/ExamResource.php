@@ -565,6 +565,28 @@ class ExamResource extends Resource
                                     ->send();
                             }
                         }),
+                    Tables\Actions\Action::make('openFinalization')
+                        ->label('Buka Finalisasi')
+                        ->icon('heroicon-m-lock-open')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Buka Finalisasi Ujian')
+                        ->modalDescription('Semua sesi yang sudah difinalisasi akan direset. Data nilai tetap ada, namun sesi bisa dikoreksi ulang di Penilaian Manual.')
+                        ->modalSubmitActionLabel('Ya, Buka Finalisasi')
+                        ->visible(
+                            fn(Exam $record) => auth()->user()?->role === UserRole::ADMIN
+                                && $record->sessions()->whereNotNull('finalized_at')->exists()
+                        )
+                        ->action(function (Exam $record) {
+                            $count = $record->sessions()->whereNotNull('finalized_at')->count();
+                            $record->sessions()->whereNotNull('finalized_at')->update(['finalized_at' => null]);
+
+                            Notification::make()
+                                ->success()
+                                ->title('Finalisasi Dibuka')
+                                ->body("{$count} sesi berhasil dibuka kembali untuk dikoreksi.")
+                                ->send();
+                        }),
                     Tables\Actions\Action::make('toggleShowResult')
                         ->label(
                             fn(Exam $record) => $record->show_result_to_student
